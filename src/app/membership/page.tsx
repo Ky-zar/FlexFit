@@ -86,7 +86,7 @@ export default function MembershipPage() {
               </CardContent>
               <CardFooter>
                 <Button asChild className={`w-full ${tier.popular ? '' : 'bg-accent hover:bg-accent/90 text-accent-foreground'}`}>
-                  <Link href="/schedule">{`Choose ${tier.name}`}</Link>
+                  <Link href={`/membership/checkout?tierId=${tier.id}&annual=${isAnnual}`}>{`Choose ${tier.name}`}</Link>
                 </Button>
               </CardFooter>
             </Card>
