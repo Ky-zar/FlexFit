@@ -10,48 +10,13 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { CreditCard, Lock } from 'lucide-react';
 import { useState } from 'react';
-import { db } from '@/lib/firebase';
-import { doc, runTransaction } from 'firebase/firestore';
-import { revalidatePath } from 'next/cache';
+import { confirmBookingPayment } from '@/lib/actions';
+
 
 interface CheckoutFormProps {
   booking: Booking;
   gymClass: GymClass;
 }
-
-async function confirmBookingPayment(booking: Booking, gymClass: GymClass) {
-    'use server';
-    const bookingRef = doc(db, 'bookings', booking.id);
-    const classRef = doc(db, 'classes', gymClass.id);
-
-    try {
-        await runTransaction(db, async (transaction) => {
-            const classDoc = await transaction.get(classRef);
-            if (!classDoc.exists()) {
-                throw new Error("Class does not exist!");
-            }
-            const currentClass = classDoc.data() as GymClass;
-
-            const availableSpots = currentClass.maxSpots - currentClass.bookedSpots;
-            if (booking.spots > availableSpots) {
-                // Optionally update booking to 'cancelled'
-                throw new Error("Not enough spots available.");
-            }
-            
-            transaction.update(classRef, { bookedSpots: currentClass.bookedSpots + booking.spots });
-            transaction.update(bookingRef, { status: 'confirmed' });
-        });
-        
-        revalidatePath('/schedule');
-        revalidatePath('/');
-
-    } catch (error) {
-        console.error("Payment confirmation failed: ", error);
-        // Handle failed transaction (e.g. update booking status to 'failed')
-        throw error;
-    }
-}
-
 
 export default function CheckoutForm({ booking, gymClass }: CheckoutFormProps) {
   const router = useRouter();
@@ -67,7 +32,7 @@ export default function CheckoutForm({ booking, gymClass }: CheckoutFormProps) {
         await new Promise(resolve => setTimeout(resolve, 1500));
         
         // 2. Confirm booking in database
-        await confirmBookingPayment(booking, gymClass);
+        await confirmBookingPayment(booking.id, gymClass.id, booking.spots);
 
         toast({
             title: 'Payment Successful!',

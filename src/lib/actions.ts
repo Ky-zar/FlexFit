@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { db } from './firebase';
 import { collection, getDoc, doc, runTransaction, addDoc, serverTimestamp, setDoc } from 'firebase/firestore';
-import type { GymClass } from './types';
+import type { GymClass, Booking } from './types';
 
 
 const bookingSchema = z.object({
@@ -100,5 +100,38 @@ export async function createBooking(prevState: BookingState, formData: FormData)
   }
 
   // Redirect for free class confirmation
-  return { redirectUrl: `/confirmation/${newBookingId}?classId=${classId}` };
+  redirect(`/confirmation/${newBookingId}?classId=${classId}`);
+}
+
+
+export async function confirmBookingPayment(bookingId: string, classId: string, spots: number) {
+    const bookingRef = doc(db, 'bookings', bookingId);
+    const classRef = doc(db, 'classes', classId);
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            const classDoc = await transaction.get(classRef);
+            if (!classDoc.exists()) {
+                throw new Error("Class does not exist!");
+            }
+            const currentClass = classDoc.data() as GymClass;
+
+            const availableSpots = currentClass.maxSpots - currentClass.bookedSpots;
+            if (spots > availableSpots) {
+                // Optionally update booking to 'cancelled'
+                throw new Error("Not enough spots available.");
+            }
+            
+            transaction.update(classRef, { bookedSpots: currentClass.bookedSpots + spots });
+            transaction.update(bookingRef, { status: 'confirmed' });
+        });
+        
+        revalidatePath('/schedule');
+        revalidatePath('/');
+
+    } catch (error) {
+        console.error("Payment confirmation failed: ", error);
+        // Handle failed transaction (e.g. update booking status to 'failed')
+        throw error;
+    }
 }
