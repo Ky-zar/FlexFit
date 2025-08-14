@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, Dumbbell } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -17,10 +18,15 @@ const navLinks = [
 
 export default function Header() {
   const pathname = usePathname();
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+  const handleLinkClick = () => {
+    setIsSheetOpen(false);
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center">
+      <div className="container mx-auto flex h-16 items-center px-4 sm:px-6 lg:px-8">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <Logo />
@@ -44,7 +50,7 @@ export default function Header() {
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
           <div className="w-full flex-1 md:w-auto md:flex-none">
             {/* Mobile Nav */}
-            <Sheet>
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden">
                   <Menu className="h-5 w-5" />
@@ -52,7 +58,7 @@ export default function Header() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left">
-                <Link href="/" className="mb-6">
+                <Link href="/" className="mb-6" onClick={handleLinkClick}>
                   <Logo />
                 </Link>
                 <div className="flex flex-col space-y-4">
@@ -60,6 +66,7 @@ export default function Header() {
                     <Link
                       key={link.href}
                       href={link.href}
+                      onClick={handleLinkClick}
                       className={cn(
                         'text-lg',
                         pathname === link.href ? 'text-primary font-semibold' : 'text-muted-foreground'
@@ -71,7 +78,7 @@ export default function Header() {
                 </div>
               </SheetContent>
             </Sheet>
-            <div className="md:hidden absolute left-1/2 -translate-x-1/2">
+            <div className="absolute left-1/2 -translate-x-1/2 md:hidden">
                 <Logo />
             </div>
           </div>
