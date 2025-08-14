@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, Settings, BarChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Logo from "@/components/Logo";
@@ -35,10 +35,9 @@ export default function AdminDashboard({ initialClasses, initialAnnouncements }:
     return (
         <div className="py-8">
             <header className="flex items-center justify-between pb-6 border-b">
-                <div>
-                    <Logo />
-                    <p className="text-muted-foreground mt-1">Gym Management Dashboard</p>
-                </div>
+                <h1 className="text-2xl font-bold text-foreground">
+                    Dashboard
+                </h1>
                 <Button variant="outline" onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     Logout
