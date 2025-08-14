@@ -32,7 +32,11 @@ export default function CheckoutForm({ booking, gymClass }: CheckoutFormProps) {
         await new Promise(resolve => setTimeout(resolve, 1500));
         
         // 2. Confirm booking in database
-        await confirmBookingPayment(booking.id);
+        const result = await confirmBookingPayment(booking.id);
+
+        if (result.error) {
+          throw new Error(result.error);
+        }
 
         toast({
             title: 'Payment Successful!',

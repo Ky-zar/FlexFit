@@ -4,7 +4,7 @@ import { Timestamp } from 'firebase/firestore';
 export interface GymClass {
   id: string;
   title: string;
-  date: string;
+  date: string; // Keep as ISO string 'YYYY-MM-DD' for simplicity
   time: string;
   trainer: string;
   maxSpots: number;
@@ -13,15 +13,17 @@ export interface GymClass {
   price?: number;
 }
 
+export type BookingStatus = 'pending' | 'confirmed' | 'cancelled';
+
 export interface Booking {
   id: string;
   classId: string;
   name: string;
   email: string;
   spots: number;
-  bookingDate: Timestamp; // Use Firestore Timestamp
+  bookingDate: string | Timestamp; // Allow string for client-side, Timestamp for server
   gymClass?: GymClass;
-  status: 'pending' | 'confirmed' | 'cancelled';
+  status: BookingStatus;
   membershipId?: string | null;
 }
 
@@ -29,7 +31,7 @@ export interface Announcement {
   id:string;
   title: string;
   content: string;
-  date: Timestamp; // Use Firestore Timestamp
+  date: Timestamp;
 }
 
 export interface MembershipTier {
@@ -49,5 +51,18 @@ export interface User {
   membershipId: string;
   membershipTierId: string;
   membershipIsAnnual: boolean;
-  joinDate: Timestamp; // Use Firestore Timestamp
+  joinDate: string | Timestamp; // Allow string for client-side, Timestamp for server
+}
+
+export type BookingState = {
+    errors?: {
+        classId?: string[];
+        name?: string[];
+        email?: string[];
+        spots?: string[];
+        membershipId?: string[];
+    };
+    message?: string | null;
+    redirectUrl?: string | null;
+    success?: boolean;
 }

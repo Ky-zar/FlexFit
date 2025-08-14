@@ -18,30 +18,32 @@ interface BookingFormProps {
   gymClass: GymClass;
 }
 
-function SubmitButton() {
+function SubmitButton({ gymClass }: { gymClass: GymClass }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending || (gymClass.maxSpots - gymClass.bookedSpots) <= 0} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+    <Button type="submit" disabled={pending || (gymClass.maxSpots - (gymClass.bookedSpots || 0)) <= 0} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
       {pending ? 'Booking...' : 'Confirm Booking'}
     </Button>
   );
 }
 
 export default function BookingForm({ gymClass }: BookingFormProps) {
-  const initialState = { message: null, errors: {}, redirectUrl: null };
+  const initialState = { message: null, errors: {} };
   const [state, dispatch] = useFormState(createBooking, initialState);
   const { toast } = useToast();
   const router = useRouter();
 
   useEffect(() => {
-    if (state.message) {
+    if (state.success && state.redirectUrl) {
+      router.push(state.redirectUrl);
+    } else if (state.message) {
       toast({
         variant: "destructive",
         title: "Booking Failed",
         description: state.message,
       });
     }
-  }, [state, toast]);
+  }, [state, toast, router]);
 
   return (
     <Card className="shadow-lg">
@@ -67,7 +69,7 @@ export default function BookingForm({ gymClass }: BookingFormProps) {
           
           <div className="space-y-2">
             <Label htmlFor="spots">Number of Spots</Label>
-            <Input id="spots" name="spots" type="number" defaultValue="1" min="1" max={gymClass.maxSpots - gymClass.bookedSpots} required />
+            <Input id="spots" name="spots" type="number" defaultValue="1" min="1" max={gymClass.maxSpots - (gymClass.bookedSpots || 0)} required />
              {state?.errors?.spots && <p className="text-sm font-medium text-destructive">{state.errors.spots[0]}</p>}
           </div>
 
@@ -87,7 +89,7 @@ export default function BookingForm({ gymClass }: BookingFormProps) {
             </Alert>
           )}
 
-          <SubmitButton />
+          <SubmitButton gymClass={gymClass} />
         </form>
       </CardContent>
     </Card>

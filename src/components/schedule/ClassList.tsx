@@ -29,8 +29,11 @@ export default function ClassList({ initialClasses }: ClassListProps) {
       return initialClasses;
     }
     return initialClasses.filter(c => {
-        const classDate = parseISO(c.date);
-        return getDay(classDate).toString() === selectedDay
+        // Date from firestore is a string 'YYYY-MM-DD'
+        const classDate = new Date(c.date);
+        // Adjust for timezone offset to prevent day shifts
+        const userTimezoneOffset = classDate.getTimezoneOffset() * 60000;
+        return getDay(new Date(classDate.getTime() + userTimezoneOffset)).toString() === selectedDay
     });
   }, [initialClasses, selectedDay]);
 

@@ -17,7 +17,8 @@ async function getBookingDetails(id: string): Promise<{booking: Booking, gymClas
   const bookingRef = doc(db, 'bookings', id);
   const bookingSnap = await getDoc(bookingRef);
 
-  if (!bookingSnap.exists()) {
+  if (!bookingSnap.exists() || bookingSnap.data().status !== 'pending') {
+    // Don't allow checkout for already confirmed or non-existent bookings
     return undefined;
   }
   
@@ -55,6 +56,8 @@ export default async function ClassCheckoutPage({
   const { booking, gymClass } = details;
   
   const totalPrice = (gymClass.price || 0) * booking.spots;
+  const discount = booking.membershipId ? 5.00 : 0;
+  const finalPrice = Math.max(0, totalPrice - discount);
 
   return (
     <div className="py-16">
@@ -90,11 +93,11 @@ export default async function ClassCheckoutPage({
                   <span className="text-muted-foreground">Number of spots</span>
                   <span className="font-semibold">x {booking.spots}</span>
                 </div>
-                 {booking.membershipId && <div className="flex justify-between text-green-600"><span>Membership Discount</span><span>- $5.00</span></div> }
+                 {booking.membershipId && <div className="flex justify-between text-green-600"><span>Membership Discount</span><span>- ${discount.toFixed(2)}</span></div> }
                 <Separator />
                 <div className="flex justify-between font-bold text-lg">
                   <span>Total</span>
-                   <span>${booking.membershipId ? (totalPrice - 5).toFixed(2) : totalPrice.toFixed(2)}</span>
+                   <span>${finalPrice.toFixed(2)}</span>
                 </div>
               </CardContent>
             </Card>

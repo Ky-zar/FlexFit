@@ -14,7 +14,9 @@ async function getClassDetails(id: string): Promise<GymClass | undefined> {
   const docSnap = await getDoc(docRef);
 
   if (docSnap.exists()) {
-    return { id: docSnap.id, ...docSnap.data() } as GymClass;
+    const data = docSnap.data();
+    // Ensure date is a string literal for serialization
+    return { id: docSnap.id, ...data, date: data.date } as GymClass;
   } else {
     return undefined;
   }
@@ -27,7 +29,7 @@ export default async function BookClassPage({ params }: { params: { id: string }
     notFound();
   }
   
-  const availableSpots = gymClass.maxSpots - gymClass.bookedSpots;
+  const availableSpots = gymClass.maxSpots - (gymClass.bookedSpots || 0);
 
   return (
     <div className="bg-muted/40 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
