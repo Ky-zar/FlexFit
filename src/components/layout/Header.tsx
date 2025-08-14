@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -28,33 +29,19 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center px-4 sm:px-6 lg:px-8">
-        <div className="mr-4 hidden md:flex">
-          <Link href="/" className="mr-6 flex items-center space-x-2">
-            <Logo />
-          </Link>
-          <nav className="flex items-center space-x-6 text-sm font-medium">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  'transition-colors hover:text-primary',
-                  pathname === link.href ? 'text-primary' : 'text-foreground/60'
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
+      <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+        {/* Desktop and Mobile Logo */}
+        <div className="flex items-center">
+            <Link href="/" className="mr-6 flex items-center space-x-2">
+                <Logo />
+            </Link>
         </div>
-
-        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-          <div className="w-full flex-1 md:w-auto md:flex-none">
-            {/* Mobile Nav */}
+        
+        {/* Mobile Nav Trigger */}
+        <div className="md:hidden">
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
+                <Button variant="ghost" size="icon">
                   <Menu className="h-5 w-5" />
                   <span className="sr-only">Toggle Menu</span>
                 </Button>
@@ -78,20 +65,39 @@ export default function Header() {
                     </Link>
                   ))}
                 </div>
+                 {!isAdminPage && (
+                    <Button asChild className="w-full mt-8">
+                        <Link href="/login" onClick={handleLinkClick}>Admin Login</Link>
+                    </Button>
+                )}
               </SheetContent>
             </Sheet>
-            <div className="absolute left-1/2 -translate-x-1/2 md:hidden">
-                <Logo />
-            </div>
-          </div>
-          
-          <nav className="flex items-center">
-            {!isAdminPage && (
-                <Button asChild>
-                    <Link href="/login">Admin Login</Link>
-                </Button>
-            )}
-          </nav>
+        </div>
+
+        {/* Desktop Nav */}
+        <div className="hidden md:flex flex-1 items-center justify-between">
+            <nav className="flex items-center space-x-6 text-sm font-medium">
+                {navLinks.map((link) => (
+                <Link
+                    key={link.href}
+                    href={link.href}
+                    className={cn(
+                    'transition-colors hover:text-primary',
+                    pathname === link.href ? 'text-primary' : 'text-foreground/60'
+                    )}
+                >
+                    {link.label}
+                </Link>
+                ))}
+            </nav>
+
+            <nav className="flex items-center">
+                {!isAdminPage && (
+                    <Button asChild>
+                        <Link href="/login">Admin Login</Link>
+                    </Button>
+                )}
+            </nav>
         </div>
       </div>
     </header>
