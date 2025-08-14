@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { db } from './firebase';
-import { collection, getDoc, doc, runTransaction, addDoc, serverTimestamp, setDoc, query, where, getDocs, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, getDoc, doc, runTransaction, addDoc, serverTimestamp, setDoc, query, where, getDocs, updateDoc, writeBatch, Timestamp } from 'firebase/firestore';
 import type { GymClass, Booking, User, BookingState } from './types';
 import { getAuth } from 'firebase-admin/auth';
 import { adminApp } from './firebase-admin';
@@ -165,7 +165,7 @@ export async function getUserBookings(email: string): Promise<(Booking & { gymCl
         const booking = { 
             id: bookingDoc.id, 
             ...bookingData,
-            bookingDate: bookingData.bookingDate.toDate().toISOString()
+            bookingDate: (bookingData.bookingDate as Timestamp).toDate().toISOString()
         } as Booking;
         
         const classRef = doc(db, 'classes', booking.classId);
@@ -193,11 +193,7 @@ const purchaseMembershipSchema = z.object({
 export async function purchaseMembership(input: z.infer<typeof purchaseMembershipSchema>) {
     const validated = purchaseMembershipSchema.safeParse(input);
     if(!validated.success) return { error: "Invalid input." };
-    if (!adminApp) {
-      console.error("purchaseMembership: adminApp is not initialized!");
-      return { error: "Admin SDK not initialized. Contact support." };
-    }
-
+   
     const { tierId, isAnnual, email, name } = validated.data;
     const auth = getAuth(adminApp);
 
@@ -219,13 +215,17 @@ export async function purchaseMembership(input: z.infer<typeof purchaseMembershi
         const membershipId = `MEM-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
         const userRef = doc(db, 'users', userRecord.uid);
         
-        await setDoc(userRef, {
-            uid: userRecord.uid,
+        const newUser: Omit<User, 'uid' | 'joinDate'> = {
             email,
             name,
             membershipId,
             membershipTierId: tierId,
             membershipIsAnnual: isAnnual,
+        };
+        
+        await setDoc(userRef, {
+            ...newUser,
+            uid: userRecord.uid,
             joinDate: serverTimestamp(),
         });
         
@@ -247,10 +247,6 @@ export async function setInitialPassword(input: z.infer<typeof setPasswordSchema
     if (!validated.success) {
         return { error: validated.error.flatten().fieldErrors.password?.[0] || "Invalid input" };
     }
-    if (!adminApp) {
-      console.error("setInitialPassword: adminApp is not initialized!");
-      return { error: "Admin SDK not initialized. Contact support." };
-    }
     
     const { email, password } = validated.data;
     const auth = getAuth(adminApp);
@@ -261,7 +257,7 @@ export async function setInitialPassword(input: z.infer<typeof setPasswordSchema
         return { success: true };
     } catch (error) {
         console.error("Set Password Error:", error);
-        return { error: 'Could not set password.' };
+        return { error: 'Could not set password for this user.' };
     }
 }
 
@@ -271,13 +267,14 @@ export async function getUser(email: string): Promise<User | null> {
     const querySnapshot = await getDocs(userQuery);
     if(querySnapshot.empty) return null;
     
-    const userData = querySnapshot.docs[0].data();
+    const doc = querySnapshot.docs[0];
+    const userData = doc.data();
     
-    if (userData.joinDate && userData.joinDate.toDate) {
-        return {
-            ...userData,
-            joinDate: userData.joinDate.toDate().toISOString(),
-        } as User;
-    }
-    return userData as User;
+    return {
+        id: doc.id,
+        ...userData,
+        joinDate: (userData.joinDate as Timestamp).toDate().toISOString(),
+    } as User;
 }
+
+    
