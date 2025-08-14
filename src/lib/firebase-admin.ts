@@ -20,9 +20,12 @@ function initializeAdminApp() {
 
     try {
         let serviceAccount;
-        if (serviceAccountKey.startsWith('{')) {
+        // The key might be a JSON string or a base64 encoded JSON string.
+        // Try parsing directly first, which works for many environments.
+        try {
             serviceAccount = JSON.parse(serviceAccountKey);
-        } else {
+        } catch (e) {
+            // If direct parsing fails, assume it's base64 encoded.
             const decodedKey = Buffer.from(serviceAccountKey, 'base64').toString('utf-8');
             serviceAccount = JSON.parse(decodedKey);
         }
@@ -33,7 +36,7 @@ function initializeAdminApp() {
         console.log("Firebase Admin SDK initialized successfully.");
     } catch (error: any) {
         console.error('CRITICAL: Firebase Admin SDK initialization failed.', error.message);
-        throw new Error('Server configuration error: Could not initialize Firebase Admin SDK.');
+        throw new Error('Server configuration error: Could not initialize Firebase Admin SDK. Please ensure the service account key is a valid JSON or base64-encoded JSON.');
     }
 }
 
