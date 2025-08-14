@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Calendar, Clock, User, Users } from 'lucide-react';
+import { Calendar, Clock, User, Users, Tag } from 'lucide-react';
 import { format } from 'date-fns';
 import type { GymClass } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +19,14 @@ export default function ClassCard({ gymClass }: ClassCardProps) {
   return (
     <Card className="flex h-full flex-col overflow-hidden transition-shadow duration-300 hover:shadow-lg dark:hover:shadow-primary/20">
       <CardHeader>
-        <CardTitle className="font-headline text-2xl">{gymClass.title}</CardTitle>
+        <div className="flex justify-between items-start">
+            <CardTitle className="font-headline text-2xl">{gymClass.title}</CardTitle>
+            {gymClass.price && gymClass.price > 0 && (
+                <Badge variant="secondary" className="text-lg bg-accent text-accent-foreground">
+                    ${gymClass.price.toFixed(2)}
+                </Badge>
+            )}
+        </div>
         <CardDescription className="flex items-center gap-2 pt-2">
           <User className="h-4 w-4" />
           <span>{gymClass.trainer}</span>

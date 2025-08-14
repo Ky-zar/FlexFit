@@ -7,6 +7,7 @@ export interface GymClass {
   maxSpots: number;
   bookedSpots: number;
   description: string;
+  price?: number;
 }
 
 export interface Booking {

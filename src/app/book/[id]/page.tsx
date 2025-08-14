@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
-import { Calendar, Clock, User } from 'lucide-react';
+import { Calendar, Clock, User, Tag } from 'lucide-react';
 
 import type { GymClass } from '@/lib/types';
 import BookingForm from '@/components/booking/BookingForm';
@@ -37,7 +37,14 @@ export default async function BookClassPage({ params }: { params: { id: string }
             <h1 className="font-headline text-3xl md:text-4xl font-bold">Book Your Spot</h1>
             <Card>
               <CardHeader>
-                <CardTitle className="font-headline text-2xl">{gymClass.title}</CardTitle>
+                <div className="flex justify-between items-center">
+                    <CardTitle className="font-headline text-2xl">{gymClass.title}</CardTitle>
+                    {gymClass.price && gymClass.price > 0 && (
+                        <div className="text-xl font-bold text-primary">
+                            ${gymClass.price.toFixed(2)}
+                        </div>
+                    )}
+                </div>
                 <CardDescription className="pt-2">{gymClass.description}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 text-sm">

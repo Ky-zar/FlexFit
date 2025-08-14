@@ -34,11 +34,12 @@ const ClassForm = ({ gymClass, onSave }: { gymClass?: GymClass, onSave: () => vo
         trainer: gymClass?.trainer || '',
         maxSpots: gymClass?.maxSpots || 10,
         description: gymClass?.description || '',
+        price: gymClass?.price || 0,
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { id, value } = e.target;
-        setFormState(prev => ({ ...prev, [id]: id === 'maxSpots' ? Number(value) : value }));
+        setFormState(prev => ({ ...prev, [id]: id === 'maxSpots' || id === 'price' ? Number(value) : value }));
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -66,6 +67,7 @@ const ClassForm = ({ gymClass, onSave }: { gymClass?: GymClass, onSave: () => vo
              <div><Label htmlFor="time">Time</Label><Input type="time" id="time" value={formState.time} onChange={handleChange} /></div>
              <div><Label htmlFor="trainer">Trainer</Label><Input id="trainer" value={formState.trainer} onChange={handleChange} /></div>
              <div><Label htmlFor="maxSpots">Max Spots</Label><Input type="number" id="maxSpots" value={formState.maxSpots} onChange={handleChange} /></div>
+             <div><Label htmlFor="price">Price ($)</Label><Input type="number" id="price" value={formState.price} onChange={handleChange} step="0.01" /></div>
             <DialogFooter>
                 <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
                 <Button type="submit">Save Class</Button>
@@ -165,6 +167,7 @@ export default function ClassManager({ initialClasses }: ClassManagerProps) {
                             <TableHead>Class</TableHead>
                             <TableHead>Trainer</TableHead>
                             <TableHead>Date & Time</TableHead>
+                            <TableHead>Price</TableHead>
                             <TableHead>Bookings</TableHead>
                             <TableHead><span className="sr-only">Actions</span></TableHead>
                         </TableRow>
@@ -175,6 +178,7 @@ export default function ClassManager({ initialClasses }: ClassManagerProps) {
                                 <TableCell className="font-medium">{c.title}</TableCell>
                                 <TableCell>{c.trainer}</TableCell>
                                 <TableCell>{format(new Date(c.date), 'MMM d, yyyy')} at {c.time}</TableCell>
+                                 <TableCell>{c.price ? `$${c.price.toFixed(2)}` : 'Free'}</TableCell>
                                 <TableCell>{c.bookedSpots} / {c.maxSpots}</TableCell>
                                 <TableCell>
                                     <DropdownMenu>
