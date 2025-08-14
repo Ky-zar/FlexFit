@@ -1,0 +1,27 @@
+export interface GymClass {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  trainer: string;
+  maxSpots: number;
+  bookedSpots: number;
+  description: string;
+}
+
+export interface Booking {
+  id: string;
+  classId: string;
+  name: string;
+  email: string;
+  spots: number;
+  bookingDate: string;
+  gymClass?: GymClass;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  date: string;
+}
