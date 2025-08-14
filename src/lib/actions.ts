@@ -2,14 +2,12 @@
 'use server';
 
 import { z } from 'zod';
-import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { db } from './firebase';
 import { collection, getDoc, doc, runTransaction, addDoc, serverTimestamp, setDoc, query, where, getDocs, updateDoc, writeBatch, Timestamp } from 'firebase/firestore';
 import type { GymClass, Booking, User, BookingState } from './types';
 import { getAuth } from 'firebase-admin/auth';
 import { adminApp } from './firebase-admin';
-
 
 const bookingSchema = z.object({
   classId: z.string(),
@@ -207,9 +205,10 @@ export async function purchaseMembership(input: z.infer<typeof purchaseMembershi
             });
         } catch (error: any) {
             if (error.code === 'auth/email-already-exists') {
-                return { error: 'An account with this email already exists.' };
+                userRecord = await auth.getUserByEmail(email);
+            } else {
+                throw error;
             }
-            throw error; 
         }
         
         const membershipId = `MEM-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
@@ -227,13 +226,13 @@ export async function purchaseMembership(input: z.infer<typeof purchaseMembershi
             ...newUser,
             uid: userRecord.uid,
             joinDate: serverTimestamp(),
-        });
+        }, { merge: true });
         
         return { success: true, uid: userRecord.uid };
 
     } catch (error: any) {
         console.error("Membership Purchase Error:", error);
-        return { error: 'Failed to create account.' };
+        return { error: 'Failed to create membership.' };
     }
 }
 
@@ -267,14 +266,12 @@ export async function getUser(email: string): Promise<User | null> {
     const querySnapshot = await getDocs(userQuery);
     if(querySnapshot.empty) return null;
     
-    const doc = querySnapshot.docs[0];
-    const userData = doc.data();
+    const docSnap = querySnapshot.docs[0];
+    const userData = docSnap.data();
     
     return {
-        id: doc.id,
+        uid: docSnap.id,
         ...userData,
         joinDate: (userData.joinDate as Timestamp).toDate().toISOString(),
     } as User;
 }
-
-    
