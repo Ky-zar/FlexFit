@@ -56,40 +56,56 @@ export async function createBooking(prevState: BookingState, formData: FormData)
         throw new Error('Class not found.');
     }
     const gymClass = classDoc.data() as GymClass;
+    
+    // We can check spot availability early for a better user experience
+    const availableSpots = gymClass.maxSpots - (gymClass.bookedSpots || 0);
+    if (spots > availableSpots) {
+        return { message: `Booking failed: Only ${availableSpots} spots remaining.` };
+    }
 
     const newBookingRef = doc(collection(db, 'bookings'));
     newBookingId = newBookingRef.id;
 
-    await setDoc(newBookingRef, {
+    const newBookingData: Omit<Booking, 'id' | 'bookingDate'> = {
         classId,
         name,
         email,
         spots,
         membershipId: membershipId || null,
-        bookingDate: serverTimestamp(),
-        status: 'pending'
-    });
+        // If the class is free, it's confirmed immediately. Otherwise, it's pending.
+        status: (!gymClass.price || gymClass.price <= 0) ? 'confirmed' : 'pending'
+    };
 
-    if (!gymClass.price || gymClass.price <= 0) {
+    // The status is set, but we don't write to the database until we know the next step
+    
+    if (newBookingData.status === 'confirmed') {
+        // For free classes, we write the booking and update the count in one transaction
         await runTransaction(db, async (transaction) => {
             const freshClassDoc = await transaction.get(classRef);
             if (!freshClassDoc.exists()) throw new Error("Class does not exist!");
 
             const currentClassData = freshClassDoc.data() as GymClass;
-            const availableSpots = currentClassData.maxSpots - currentClassData.bookedSpots;
-            if (spots > availableSpots) {
-                throw new Error(`Only ${availableSpots} spots remaining.`);
+            const currentBookedSpots = currentClassData.bookedSpots || 0;
+             if (spots > (currentClassData.maxSpots - currentBookedSpots)) {
+                throw new Error(`Only ${currentClassData.maxSpots - currentBookedSpots} spots remaining.`);
             }
 
-            transaction.update(classRef, { bookedSpots: currentClassData.bookedSpots + spots });
-            transaction.update(newBookingRef, { status: 'confirmed' });
+            transaction.set(newBookingRef, {
+                ...newBookingData,
+                bookingDate: serverTimestamp(),
+            });
+            // Note: bookedSpots are now updated via a Cloud Function trigger for consistency
         });
         
         revalidatePath('/schedule');
         revalidatePath('/');
+        redirect(`/confirmation/${newBookingId}?classId=${classId}`);
     } else {
-       // For paid classes, we redirect to a new checkout page.
-       // The booking status remains 'pending' until payment is confirmed there.
+       // For paid classes, just create the 'pending' booking, then redirect to checkout
+       await setDoc(newBookingRef, {
+            ...newBookingData,
+            bookingDate: serverTimestamp(),
+       });
        return { redirectUrl: `/book/checkout?bookingId=${newBookingId}` };
     }
 
@@ -98,31 +114,20 @@ export async function createBooking(prevState: BookingState, formData: FormData)
       message: error.message || 'An unexpected error occurred during booking.',
     }
   }
-
-  // Redirect for free class confirmation
-  redirect(`/confirmation/${newBookingId}?classId=${classId}`);
 }
 
 
-export async function confirmBookingPayment(bookingId: string, classId: string, spots: number) {
+export async function confirmBookingPayment(bookingId: string) {
     const bookingRef = doc(db, 'bookings', bookingId);
-    const classRef = doc(db, 'classes', classId);
 
     try {
         await runTransaction(db, async (transaction) => {
-            const classDoc = await transaction.get(classRef);
-            if (!classDoc.exists()) {
-                throw new Error("Class does not exist!");
-            }
-            const currentClass = classDoc.data() as GymClass;
-
-            const availableSpots = currentClass.maxSpots - currentClass.bookedSpots;
-            if (spots > availableSpots) {
-                // Optionally update booking to 'cancelled'
-                throw new Error("Not enough spots available.");
+            const bookingDoc = await transaction.get(bookingRef);
+            if (!bookingDoc.exists() || bookingDoc.data().status !== 'pending') {
+                throw new Error("Booking not found or already processed.");
             }
             
-            transaction.update(classRef, { bookedSpots: currentClass.bookedSpots + spots });
+            // The Cloud Function will handle spot counting when the status changes.
             transaction.update(bookingRef, { status: 'confirmed' });
         });
         

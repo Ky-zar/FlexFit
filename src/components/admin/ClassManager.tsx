@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { MoreHorizontal, PlusCircle, Users } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Users, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -18,8 +18,9 @@ import type { GymClass, Booking } from '@/lib/types';
 import { Input } from '../ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, query, where, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { Label } from '../ui/label';
+import { Badge } from '../ui/badge';
 
 interface ClassManagerProps {
     initialClasses: GymClass[];
@@ -46,7 +47,7 @@ const ClassForm = ({ gymClass, onSave }: { gymClass?: GymClass, onSave: () => vo
         e.preventDefault();
         try {
             if (gymClass) {
-                await updateDoc(doc(db, 'classes', gymClass.id), { ...formState, bookedSpots: gymClass.bookedSpots || 0 });
+                await updateDoc(doc(db, 'classes', gymClass.id), formState );
                 toast({ title: "Class updated successfully!" });
             } else {
                 await addDoc(collection(db, 'classes'), { ...formState, bookedSpots: 0 });
@@ -80,8 +81,9 @@ const ViewBookingsDialog = ({ classId, classTitle }: { classId: string, classTit
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useState(() => {
+    useEffect(() => {
         const fetchBookings = async () => {
+            if (!classId) return;
             setLoading(true);
             const q = query(collection(db, "bookings"), where("classId", "==", classId));
             const querySnapshot = await getDocs(q);
@@ -90,21 +92,51 @@ const ViewBookingsDialog = ({ classId, classTitle }: { classId: string, classTit
             setLoading(false);
         };
         fetchBookings();
-    });
+    }, [classId]);
+
+    const getStatusIcon = (status: Booking['status']) => {
+        switch (status) {
+            case 'confirmed': return <CheckCircle className="h-4 w-4 text-green-500" />;
+            case 'pending': return <Clock className="h-4 w-4 text-yellow-500" />;
+            case 'cancelled': return <XCircle className="h-4 w-4 text-red-500" />;
+            default: return null;
+        }
+    };
 
      return (
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
             <DialogHeader>
                 <DialogTitle>Bookings for {classTitle}</DialogTitle>
+                <DialogDescription>List of all user bookings for this class.</DialogDescription>
             </DialogHeader>
-            <div className="mt-4">
+            <div className="mt-4 max-h-[400px] overflow-y-auto">
                 {loading ? <p>Loading...</p> : bookings.length > 0 ? (
-                     <ul className="space-y-2">
-                        {bookings.map(b => (
-                            <li key={b.id} className="text-sm p-2 bg-muted rounded-md">{b.name} ({b.email}) - {b.spots} spot(s)</li>
-                        ))}
-                    </ul>
-                ) : <p className="text-sm text-muted-foreground">No bookings for this class yet.</p>}
+                     <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Email</TableHead>
+                                <TableHead>Spots</TableHead>
+                                <TableHead>Status</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {bookings.map(b => (
+                                <TableRow key={b.id}>
+                                    <TableCell>{b.name}</TableCell>
+                                    <TableCell>{b.email}</TableCell>
+                                    <TableCell>{b.spots}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={b.status === 'confirmed' ? 'default' : b.status === 'pending' ? 'secondary' : 'destructive'} className="capitalize flex items-center gap-1 w-fit">
+                                            {getStatusIcon(b.status)}
+                                            {b.status}
+                                        </Badge>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                ) : <p className="text-sm text-muted-foreground text-center py-8">No bookings for this class yet.</p>}
             </div>
         </DialogContent>
     )
@@ -126,9 +158,20 @@ export default function ClassManager({ initialClasses }: ClassManagerProps) {
     const handleDelete = async (id: string) => {
         if(window.confirm('Are you sure? This will delete the class and all associated bookings.')) {
             try {
-                await deleteDoc(doc(db, 'classes', id));
-                // In a real app, you might also want to delete bookings via a cloud function.
-                toast({ title: 'Class deleted.'});
+                const batch = writeBatch(db);
+                // Delete the class
+                batch.delete(doc(db, 'classes', id));
+                
+                // Find and delete all bookings for that class
+                const bookingsQuery = query(collection(db, 'bookings'), where('classId', '==', id));
+                const bookingsSnapshot = await getDocs(bookingsQuery);
+                bookingsSnapshot.forEach(bookingDoc => {
+                    batch.delete(bookingDoc.ref);
+                });
+
+                await batch.commit();
+
+                toast({ title: 'Class and all its bookings have been deleted.'});
                 setClasses(classes.filter(c => c.id !== id));
             } catch (error) {
                  toast({ variant: 'destructive', title: 'Failed to delete class.'});
@@ -178,8 +221,8 @@ export default function ClassManager({ initialClasses }: ClassManagerProps) {
                                 <TableCell className="font-medium">{c.title}</TableCell>
                                 <TableCell>{c.trainer}</TableCell>
                                 <TableCell>{format(new Date(c.date), 'MMM d, yyyy')} at {c.time}</TableCell>
-                                 <TableCell>{c.price ? `$${c.price.toFixed(2)}` : 'Free'}</TableCell>
-                                <TableCell>{c.bookedSpots} / {c.maxSpots}</TableCell>
+                                 <TableCell>{c.price && c.price > 0 ? `$${c.price.toFixed(2)}` : 'Free'}</TableCell>
+                                <TableCell>{c.bookedSpots || 0} / {c.maxSpots}</TableCell>
                                 <TableCell>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
