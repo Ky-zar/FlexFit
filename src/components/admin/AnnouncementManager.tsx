@@ -13,7 +13,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogClose, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogClose, DialogFooter } from '@/components/ui/dialog';
 import type { Announcement } from '@/lib/types';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
@@ -137,8 +137,8 @@ export default function AnnouncementManager({ initialAnnouncements }: Announceme
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                            <DropdownMenuItem onClick={() => openFormDialog(a)}>Edit</DropdownMenuItem>
-                                            <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(a.id)}>Delete</DropdownMenuItem>
+                                            <DropdownMenuItem onSelect={() => openFormDialog(a)}>Edit</DropdownMenuItem>
+                                            <DropdownMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); handleDelete(a.id); }}>Delete</DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </TableCell>
