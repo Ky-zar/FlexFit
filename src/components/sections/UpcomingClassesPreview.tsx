@@ -9,7 +9,7 @@ import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 
 async function getUpcomingClasses(): Promise<GymClass[]> {
   const classesCol = collection(db, 'classes');
-  const q = query(classesCol, orderBy('date'), orderBy('time'), limit(3));
+  const q = query(classesCol, orderBy('date'), limit(3));
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GymClass));
 }

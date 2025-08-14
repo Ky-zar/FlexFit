@@ -47,7 +47,7 @@ export default function MembershipPage() {
       <div className="flex justify-center items-center gap-4 my-10">
         <Label htmlFor="billing-cycle" className={!isAnnual ? 'text-primary' : ''}>Monthly</Label>
         <Switch id="billing-cycle" checked={isAnnual} onCheckedChange={setIsAnnual} />
-        <Label htmlFor="billing-cycle" className={isAnnual ? 'text-primary' : ''}>Annual (Save 30%)</Label>
+        <Label htmlFor="billing-cycle" className={isAnnual ? 'text-primary' : ''}>Annual (Save 20%)</Label>
       </div>
 
       <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -64,9 +64,16 @@ export default function MembershipPage() {
                 <CardDescription>{tier.description}</CardDescription>
               </CardHeader>
               <CardContent className="flex-grow space-y-6">
-                <div className="text-4xl font-bold">
-                  ${isAnnual ? tier.annualPrice : tier.monthlyPrice}
-                  <span className="text-sm font-normal text-muted-foreground">/ {isAnnual ? 'year' : 'month'}</span>
+                <div className="text-center">
+                    <div className="text-4xl font-bold">
+                        ${isAnnual ? (tier.annualPrice / 12).toFixed(2) : tier.monthlyPrice.toFixed(2)}
+                        <span className="text-sm font-normal text-muted-foreground">/ month</span>
+                    </div>
+                    {isAnnual && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Billed annually at ${tier.annualPrice.toFixed(2)}
+                        </p>
+                    )}
                 </div>
                 <ul className="space-y-3">
                   {tier.features.map((feature, index) => (

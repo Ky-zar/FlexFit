@@ -48,7 +48,7 @@ const MembershipForm = ({ tier, onSave }: { tier: MembershipTier, onSave: () => 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const annualPrice = parseFloat((formState.monthlyPrice * 12 * 0.7).toFixed(2));
+            const annualPrice = parseFloat((formState.monthlyPrice * 12 * 0.8).toFixed(2));
             const featuresArray = formState.features.split('\n').filter(f => f.trim() !== '');
             
             await updateDoc(doc(db, 'membershipTiers', tier.id), { 

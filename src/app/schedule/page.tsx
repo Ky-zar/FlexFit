@@ -5,7 +5,7 @@ import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 
 async function getAllClasses(): Promise<GymClass[]> {
   const classesCol = collection(db, 'classes');
-  const q = query(classesCol, orderBy('date'), orderBy('time'));
+  const q = query(classesCol, orderBy('date'));
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GymClass));
 }
