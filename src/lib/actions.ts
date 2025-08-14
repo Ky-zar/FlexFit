@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { db } from './firebase';
-import { collection, getDoc, doc, runTransaction, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDoc, doc, runTransaction, addDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import type { GymClass } from './types';
 
 
@@ -35,50 +35,56 @@ export async function createBooking(prevState: any, formData: FormData) {
   
   const { classId, name, email, spots, membershipId } = validatedFields.data;
 
-  // Placeholder for discount logic
-  if (membershipId) {
-    // In a real app, you would look up the membershipId in your database
-    // to verify it's valid and determine the discount.
-    // For example:
-    // const membership = await getMembership(membershipId);
-    // if (membership.type === 'premium') { /* apply discount */ }
-    console.log(`Membership ID ${membershipId} provided. Discount logic would apply here.`);
-  }
-
   try {
     const classRef = doc(db, 'classes', classId);
-    
-    const newBookingId = await runTransaction(db, async (transaction) => {
-      const classDoc = await transaction.get(classRef);
-      if (!classDoc.exists()) {
-        throw new Error('Class not found.');
-      }
+    let newBookingId: string;
+    let gymClass: GymClass;
 
-      const gymClass = classDoc.data() as GymClass;
-      const availableSpots = gymClass.maxSpots - gymClass.bookedSpots;
-      
-      if (spots > availableSpots) {
-        throw new Error(`Only ${availableSpots} spots remaining.`);
-      }
+    // We create the booking document first with a 'pending' status.
+    const newBookingRef = doc(collection(db, 'bookings'));
+    newBookingId = newBookingRef.id;
 
-      const updatedBookedSpots = gymClass.bookedSpots + spots;
-      transaction.update(classRef, { bookedSpots: updatedBookedSpots });
-      
-      const bookingsCol = collection(db, 'bookings');
-      const newBookingRef = await addDoc(bookingsCol, {
+    await setDoc(newBookingRef, {
         classId,
         name,
         email,
         spots,
         membershipId: membershipId || null,
         bookingDate: serverTimestamp(),
-      });
-      return newBookingRef.id;
+        status: 'pending' // 'pending', 'confirmed', 'cancelled'
     });
+    
+    const classDoc = await getDoc(classRef);
+    if (!classDoc.exists()) {
+        throw new Error('Class not found.');
+    }
+    gymClass = classDoc.data() as GymClass;
 
-    revalidatePath('/schedule');
-    revalidatePath('/');
-    redirect(`/confirmation/${newBookingId}?classId=${classId}`);
+    // If class is free, confirm booking immediately.
+    // Otherwise, redirect to checkout.
+    if (!gymClass.price || gymClass.price <= 0) {
+        await runTransaction(db, async (transaction) => {
+            const freshClassDoc = await transaction.get(classRef);
+            if (!freshClassDoc.exists()) throw new Error("Class does not exist!");
+
+            const currentClassData = freshClassDoc.data() as GymClass;
+            const availableSpots = currentClassData.maxSpots - currentClassData.bookedSpots;
+            if (spots > availableSpots) {
+                throw new Error(`Only ${availableSpots} spots remaining.`);
+            }
+
+            transaction.update(classRef, { bookedSpots: currentClassData.bookedSpots + spots });
+            transaction.update(newBookingRef, { status: 'confirmed' });
+        });
+        
+        revalidatePath('/schedule');
+        revalidatePath('/');
+        redirect(`/confirmation/${newBookingId}?classId=${classId}`);
+    } else {
+        // For paid classes, we redirect to a new checkout page.
+        // The booking status remains 'pending' until payment is confirmed there.
+        redirect(`/book/checkout?bookingId=${newBookingId}`);
+    }
 
   } catch (error: any) {
     return {

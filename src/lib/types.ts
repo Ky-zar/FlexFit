@@ -1,3 +1,4 @@
+
 export interface GymClass {
   id: string;
   title: string;
@@ -18,6 +19,8 @@ export interface Booking {
   spots: number;
   bookingDate: string;
   gymClass?: GymClass;
+  status: 'pending' | 'confirmed' | 'cancelled';
+  membershipId?: string | null;
 }
 
 export interface Announcement {
