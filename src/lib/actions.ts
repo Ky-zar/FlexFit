@@ -17,7 +17,19 @@ const bookingSchema = z.object({
   membershipId: z.string().optional(),
 });
 
-export async function createBooking(prevState: any, formData: FormData) {
+type BookingState = {
+    errors?: {
+        classId?: string[];
+        name?: string[];
+        email?: string[];
+        spots?: string[];
+        membershipId?: string[];
+    };
+    message?: string | null;
+    redirectUrl?: string | null;
+}
+
+export async function createBooking(prevState: BookingState, formData: FormData): Promise<BookingState> {
   const validatedFields = bookingSchema.safeParse({
     classId: formData.get('classId'),
     name: formData.get('name'),
@@ -78,7 +90,7 @@ export async function createBooking(prevState: any, formData: FormData) {
     } else {
        // For paid classes, we redirect to a new checkout page.
        // The booking status remains 'pending' until payment is confirmed there.
-       return redirect(`/book/checkout?bookingId=${newBookingId}`);
+       return { redirectUrl: `/book/checkout?bookingId=${newBookingId}` };
     }
 
   } catch (error: any) {
@@ -88,5 +100,5 @@ export async function createBooking(prevState: any, formData: FormData) {
   }
 
   // Redirect for free class confirmation
-  return redirect(`/confirmation/${newBookingId}?classId=${classId}`);
+  return { redirectUrl: `/confirmation/${newBookingId}?classId=${classId}` };
 }

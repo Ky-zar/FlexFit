@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 interface BookingFormProps {
   gymClass: GymClass;
@@ -28,22 +28,22 @@ function SubmitButton() {
 }
 
 export default function BookingForm({ gymClass }: BookingFormProps) {
-  const initialState = { message: null, errors: {} };
+  const initialState = { message: null, errors: {}, redirectUrl: null };
   const [state, dispatch] = useFormState(createBooking, initialState);
   const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
-    if (state instanceof URL) {
-      redirect(state.toString());
-    }
-    if (state?.message && !state.errors) {
+    if (state.redirectUrl) {
+      router.push(state.redirectUrl);
+    } else if (state.message && !state.errors) {
       toast({
         variant: "destructive",
         title: "Booking Failed",
         description: state.message,
       });
     }
-  }, [state, toast]);
+  }, [state, toast, router]);
 
   return (
     <Card className="shadow-lg">
@@ -79,7 +79,7 @@ export default function BookingForm({ gymClass }: BookingFormProps) {
             {state?.errors?.membershipId && <p className="text-sm font-medium text-destructive">{state.errors.membershipId[0]}</p>}
           </div>
           
-          {state?.message && !state.errors && (
+          {state?.message && !state.errors && !state.redirectUrl && (
              <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Error</AlertTitle>
