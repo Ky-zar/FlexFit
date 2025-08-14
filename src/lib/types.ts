@@ -1,4 +1,6 @@
 
+import { Timestamp } from 'firebase/firestore';
+
 export interface GymClass {
   id: string;
   title: string;
@@ -17,17 +19,17 @@ export interface Booking {
   name: string;
   email: string;
   spots: number;
-  bookingDate: string; // Should be ISO string
+  bookingDate: Timestamp; // Use Firestore Timestamp
   gymClass?: GymClass;
   status: 'pending' | 'confirmed' | 'cancelled';
   membershipId?: string | null;
 }
 
 export interface Announcement {
-  id: string;
+  id:string;
   title: string;
   content: string;
-  date: string; // Should be ISO string
+  date: Timestamp; // Use Firestore Timestamp
 }
 
 export interface MembershipTier {
@@ -47,5 +49,5 @@ export interface User {
   membershipId: string;
   membershipTierId: string;
   membershipIsAnnual: boolean;
-  joinDate: string; // ISO String
+  joinDate: Timestamp; // Use Firestore Timestamp
 }

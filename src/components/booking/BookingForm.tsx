@@ -21,7 +21,7 @@ interface BookingFormProps {
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+    <Button type="submit" disabled={pending || (gymClass.maxSpots - gymClass.bookedSpots) <= 0} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
       {pending ? 'Booking...' : 'Confirm Booking'}
     </Button>
   );
@@ -34,16 +34,14 @@ export default function BookingForm({ gymClass }: BookingFormProps) {
   const router = useRouter();
 
   useEffect(() => {
-    if (state.redirectUrl) {
-      router.push(state.redirectUrl);
-    } else if (state.message && !state.errors) {
+    if (state.message) {
       toast({
         variant: "destructive",
         title: "Booking Failed",
         description: state.message,
       });
     }
-  }, [state, toast, router]);
+  }, [state, toast]);
 
   return (
     <Card className="shadow-lg">
@@ -79,7 +77,7 @@ export default function BookingForm({ gymClass }: BookingFormProps) {
             {state?.errors?.membershipId && <p className="text-sm font-medium text-destructive">{state.errors.membershipId[0]}</p>}
           </div>
           
-          {state?.message && !state.errors && !state.redirectUrl && (
+          {state?.message && !state.errors && (
              <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Error</AlertTitle>

@@ -1,3 +1,4 @@
+
 import { Megaphone, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Announcement } from '@/lib/types';
@@ -5,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { db } from '@/lib/firebase';
 import { collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
 
+export const revalidate = 0; // force dynamic rendering
 
 async function getAnnouncements(): Promise<Announcement[]> {
   const announcementsCol = collection(db, 'announcements');
@@ -12,13 +14,9 @@ async function getAnnouncements(): Promise<Announcement[]> {
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => {
       const data = doc.data();
-      // Firestore Timestamps need to be converted to JS Dates.
-      const date = data.date instanceof Timestamp ? data.date.toDate() : new Date(data.date);
       return {
           id: doc.id,
-          title: data.title,
-          content: data.content,
-          date: date.toISOString(),
+          ...data
       } as Announcement;
   });
 }
@@ -48,7 +46,7 @@ export default async function AnnouncementsPage() {
                 </CardTitle>
                 <CardDescription className="flex items-center gap-2 pt-2 text-sm text-muted-foreground">
                   <Calendar className="h-4 w-4" />
-                  <span>{format(new Date(announcement.date), 'MMMM d, yyyy')}</span>
+                  <span>{format(announcement.date.toDate(), 'MMMM d, yyyy')}</span>
                 </CardDescription>
               </CardHeader>
               <CardContent>

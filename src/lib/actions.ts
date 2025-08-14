@@ -50,16 +50,15 @@ export async function createBooking(prevState: BookingState, formData: FormData)
   const { classId, name, email, spots, membershipId } = validatedFields.data;
 
   const classRef = doc(db, 'classes', classId);
-  let newBookingId: string;
   
   try {
+    let newBookingId: string;
     const classDoc = await getDoc(classRef);
     if (!classDoc.exists()) {
         throw new Error('Class not found.');
     }
     const gymClass = classDoc.data() as GymClass;
     
-    // We can check spot availability early for a better user experience
     const availableSpots = gymClass.maxSpots - (gymClass.bookedSpots || 0);
     if (spots > availableSpots) {
         return { message: `Booking failed: Only ${availableSpots} spots remaining.` };
@@ -74,14 +73,10 @@ export async function createBooking(prevState: BookingState, formData: FormData)
         email,
         spots,
         membershipId: membershipId || null,
-        // If the class is free, it's confirmed immediately. Otherwise, it's pending.
         status: (!gymClass.price || gymClass.price <= 0) ? 'confirmed' : 'pending'
     };
-
-    // The status is set, but we don't write to the database until we know the next step
     
     if (newBookingData.status === 'confirmed') {
-        // For free classes, we write the booking and update the count in one transaction
         await runTransaction(db, async (transaction) => {
             const freshClassDoc = await transaction.get(classRef);
             if (!freshClassDoc.exists()) throw new Error("Class does not exist!");
@@ -96,23 +91,24 @@ export async function createBooking(prevState: BookingState, formData: FormData)
                 ...newBookingData,
                 bookingDate: serverTimestamp(),
             });
-            // The bookedSpots are now updated via a Cloud Function trigger for consistency.
         });
         
         revalidatePath('/schedule');
         revalidatePath('/');
-        return { redirectUrl: `/confirmation/${newBookingId}?classId=${classId}` };
+        redirect(`/confirmation/${newBookingId}?classId=${classId}`);
 
     } else {
-       // For paid classes, just create the 'pending' booking, then redirect to checkout
        await setDoc(newBookingRef, {
             ...newBookingData,
             bookingDate: serverTimestamp(),
        });
-       return { redirectUrl: `/book/checkout?bookingId=${newBookingId}` };
+       redirect(`/book/checkout?bookingId=${newBookingId}`);
     }
 
   } catch (error: any) {
+    if (error.name === 'NEXT_REDIRECT') {
+        throw error;
+    }
     return {
       message: error.message || 'An unexpected error occurred during booking.',
     }
@@ -122,10 +118,13 @@ export async function createBooking(prevState: BookingState, formData: FormData)
 
 export async function confirmBookingPayment(bookingId: string) {
     'use server';
+    if (!bookingId) {
+        throw new Error("Booking ID is required.");
+    }
+
     const bookingRef = doc(db, 'bookings', bookingId);
 
     try {
-        // The Cloud Function will handle spot counting when the status changes.
         await updateDoc(bookingRef, { status: 'confirmed' });
         
         revalidatePath('/schedule');
@@ -134,7 +133,7 @@ export async function confirmBookingPayment(bookingId: string) {
 
     } catch (error) {
         console.error("Payment confirmation failed: ", error);
-        throw error;
+        throw new Error("Failed to confirm payment and update booking.");
     }
 }
 
@@ -186,7 +185,7 @@ export async function purchaseMembership(input: z.infer<typeof purchaseMembershi
         let userRecord = await auth.createUser({
             email,
             displayName: name,
-            emailVerified: true, // We can assume email is good since payment went through
+            emailVerified: true,
         });
         
         // 2. Create user document in Firestore
@@ -244,5 +243,10 @@ export async function getUser(email: string): Promise<User | null> {
     const userQuery = query(collection(db, 'users'), where('email', '==', email));
     const querySnapshot = await getDocs(userQuery);
     if(querySnapshot.empty) return null;
-    return querySnapshot.docs[0].data() as User;
+    const userData = querySnapshot.docs[0].data();
+    // Convert Firestore Timestamp to ISO string
+    if (userData.joinDate && userData.joinDate.toDate) {
+        userData.joinDate = userData.joinDate.toDate().toISOString();
+    }
+    return userData as User;
 }

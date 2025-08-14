@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -126,7 +127,7 @@ export default function AnnouncementManager({ initialAnnouncements }: Announceme
                         {announcements.map((a) => (
                             <TableRow key={a.id}>
                                 <TableCell className="font-medium">{a.title}</TableCell>
-                                <TableCell>{format(new Date(a.date), 'MMM d, yyyy')}</TableCell>
+                                <TableCell>{format(a.date.toDate(), 'MMM d, yyyy')}</TableCell>
                                 <TableCell>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>

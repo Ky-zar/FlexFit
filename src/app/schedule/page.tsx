@@ -1,7 +1,10 @@
+
 import ClassList from '@/components/schedule/ClassList';
 import type { GymClass } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+
+export const revalidate = 0; // force dynamic rendering
 
 async function getAllClasses(): Promise<GymClass[]> {
   const classesCol = collection(db, 'classes');

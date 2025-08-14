@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
-import { format, getDay, parseISO } from 'date-fns';
+import { getDay, parseISO } from 'date-fns';
 import type { GymClass } from '@/lib/types';
 import ClassCard from '@/components/ClassCard';
 import {
@@ -28,8 +29,7 @@ export default function ClassList({ initialClasses }: ClassListProps) {
       return initialClasses;
     }
     return initialClasses.filter(c => {
-        // The date from placeholder is just a string, so we need to adjust it to treat as local time
-        const classDate = parseISO(c.date + 'T00:00:00');
+        const classDate = parseISO(c.date);
         return getDay(classDate).toString() === selectedDay
     });
   }, [initialClasses, selectedDay]);
