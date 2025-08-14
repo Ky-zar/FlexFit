@@ -48,7 +48,7 @@ export default function AdminDashboard({ initialClasses, initialAnnouncements, i
 
             <main className="mt-8">
                 <Tabs defaultValue="classes">
-                    <TabsList className="grid w-full grid-cols-1 md:grid-cols-4 md:w-max">
+                    <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
                         <TabsTrigger value="classes">Manage Classes</TabsTrigger>
                         <TabsTrigger value="announcements">Manage Announcements</TabsTrigger>
                         <TabsTrigger value="memberships">
