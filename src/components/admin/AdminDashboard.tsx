@@ -33,7 +33,7 @@ export default function AdminDashboard({ initialClasses, initialAnnouncements }:
     };
 
     return (
-        <div className="container mx-auto px-4 py-8">
+        <div className="py-8">
             <header className="flex items-center justify-between pb-6 border-b">
                 <div>
                     <Logo />

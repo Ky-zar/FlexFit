@@ -30,7 +30,7 @@ export default async function ConfirmationPage({
   }
 
   return (
-    <div className="container mx-auto px-4 py-16">
+    <div className="py-16">
       <div className="max-w-2xl mx-auto">
         <Card className="text-center shadow-lg">
           <CardHeader className="items-center">

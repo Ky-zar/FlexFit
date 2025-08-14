@@ -4,7 +4,7 @@ import Image from 'next/image';
 
 export default function Hero() {
   return (
-    <section className="relative bg-background">
+    <section className="relative bg-background -mx-4 sm:-mx-6 lg:-mx-8">
       <div className="container mx-auto px-4 py-20 lg:py-32">
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
           <div className="text-center lg:text-left">

@@ -18,7 +18,7 @@ export default async function AdminDashboardPage() {
     const { classes, announcements } = await getAdminData();
 
     return (
-        <div className="min-h-screen bg-muted/40">
+        <div className="min-h-screen bg-muted/40 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
             <AdminDashboard initialClasses={classes} initialAnnouncements={announcements} />
         </div>
     );
