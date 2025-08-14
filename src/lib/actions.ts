@@ -193,7 +193,10 @@ const purchaseMembershipSchema = z.object({
 export async function purchaseMembership(input: z.infer<typeof purchaseMembershipSchema>) {
     const validated = purchaseMembershipSchema.safeParse(input);
     if(!validated.success) return { error: "Invalid input." };
-    if (!adminApp) return { error: "Admin SDK not initialized. Please contact support." };
+    if (!adminApp) {
+      console.error("purchaseMembership: adminApp is not initialized!");
+      return { error: "Admin SDK not initialized. Contact support." };
+    }
 
     const { tierId, isAnnual, email, name } = validated.data;
     const auth = getAuth(adminApp);
@@ -244,7 +247,10 @@ export async function setInitialPassword(input: z.infer<typeof setPasswordSchema
     if (!validated.success) {
         return { error: validated.error.flatten().fieldErrors.password?.[0] || "Invalid input" };
     }
-    if (!adminApp) return { error: "Admin SDK not initialized. Please contact support." };
+    if (!adminApp) {
+      console.error("setInitialPassword: adminApp is not initialized!");
+      return { error: "Admin SDK not initialized. Contact support." };
+    }
     
     const { email, password } = validated.data;
     const auth = getAuth(adminApp);
