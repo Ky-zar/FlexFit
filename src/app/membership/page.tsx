@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -47,7 +48,7 @@ export default function MembershipPage() {
       <div className="flex justify-center items-center gap-4 my-10">
         <Label htmlFor="billing-cycle" className={!isAnnual ? 'text-primary' : ''}>Monthly</Label>
         <Switch id="billing-cycle" checked={isAnnual} onCheckedChange={setIsAnnual} />
-        <Label htmlFor="billing-cycle" className={isAnnual ? 'text-primary' : ''}>Annual (Save 20%)</Label>
+        <Label htmlFor="billing-cycle" className={isAnnual ? 'text-primary' : ''}>Annual (Save 30%)</Label>
       </div>
 
       <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
