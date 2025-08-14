@@ -79,7 +79,7 @@ export default function BookingForm({ gymClass }: BookingFormProps) {
             {state?.errors?.membershipId && <p className="text-sm font-medium text-destructive">{state.errors.membershipId[0]}</p>}
           </div>
           
-          {state?.message && !state.errors && (
+          {state?.message && !state.success && (
              <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Error</AlertTitle>

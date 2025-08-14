@@ -96,12 +96,9 @@ export async function createBooking(prevState: BookingState, formData: FormData)
     revalidatePath('/');
     revalidatePath(`/book/${classId}`);
     
-    redirect(bookingResultUrl);
+    return { success: true, redirectUrl: bookingResultUrl };
 
   } catch (error: any) {
-    if (error.name === 'NEXT_REDIRECT') {
-        throw error;
-    }
     return {
       message: error.message || 'An unexpected error occurred during booking.',
     }
