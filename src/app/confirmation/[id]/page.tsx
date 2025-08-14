@@ -64,7 +64,7 @@ export default async function ConfirmationPage({
             <p className="text-sm text-muted-foreground">
               A confirmation email has been sent to your address with the booking details. If you have any questions, feel free to contact us.
             </p>
-            <div className="flex justify-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Button asChild>
                 <Link href="/schedule">Book Another Class</Link>
               </Button>

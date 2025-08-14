@@ -1,5 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
-import { CreditCard, Lock } from 'lucide-react';
+import { CreditCard, Lock, Check } from 'lucide-react';
 
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
