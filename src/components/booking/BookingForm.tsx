@@ -33,6 +33,10 @@ export default function BookingForm({ gymClass }: BookingFormProps) {
 
   useEffect(() => {
     if (state.message && !state.errors) {
+      // Don't show a toast if the message is the redirect signal
+      if (state.message === 'NEXT_REDIRECT') {
+        return;
+      }
       toast({
         variant: "destructive",
         title: "Booking Failed",
@@ -75,7 +79,7 @@ export default function BookingForm({ gymClass }: BookingFormProps) {
             {state.errors?.membershipId && <p className="text-sm font-medium text-destructive">{state.errors.membershipId[0]}</p>}
           </div>
           
-          {state.message && !state.errors && (
+          {state.message && !state.errors && state.message !== 'NEXT_REDIRECT' && (
              <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Error</AlertTitle>
