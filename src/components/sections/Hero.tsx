@@ -21,7 +21,7 @@ export default function Hero() {
                 <Link href="/schedule">Explore Classes</Link>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <Link href="/schedule">Join Now</Link>
+                <Link href="/membership">Join Now</Link>
               </Button>
             </div>
           </div>
