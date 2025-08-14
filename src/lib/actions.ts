@@ -56,7 +56,6 @@ export async function createBooking(prevState: BookingState, formData: FormData)
     const newBookingRef = doc(collection(db, 'bookings'));
     newBookingId = newBookingRef.id;
 
-    // Use a transaction to ensure atomicity
     const bookingResultUrl = await runTransaction(db, async (transaction) => {
         const freshClassDoc = await transaction.get(classRef);
         if (!freshClassDoc.exists()) throw new Error("Class does not exist!");
@@ -83,11 +82,9 @@ export async function createBooking(prevState: BookingState, formData: FormData)
         });
         
         if (isFree) {
-            // Directly update booked spots for free classes
             transaction.update(classRef, { bookedSpots: currentBookedSpots + spots });
             return `/confirmation/${newBookingId}?classId=${classId}`;
         } else {
-            // For paid classes, just create the pending booking
             return `/book/checkout?bookingId=${newBookingId}`;
         }
     });
@@ -122,7 +119,6 @@ export async function confirmBookingPayment(bookingId: string) {
 
             const bookingData = bookingDoc.data() as Booking;
             if (bookingData.status === 'confirmed') {
-                // To prevent double-counting if the function is ever called twice
                 return; 
             }
             
@@ -182,7 +178,6 @@ export async function getUserBookings(email: string): Promise<(Booking & { gymCl
         bookings.push(booking);
     }
     
-    // Sort by class date, most recent first
     bookings.sort((a, b) => new Date(b.gymClass?.date ?? 0).getTime() - new Date(a.gymClass?.date ?? 0).getTime());
 
     return bookings;
@@ -204,22 +199,20 @@ export async function purchaseMembership(input: z.infer<typeof purchaseMembershi
     const auth = getAuth(adminApp);
 
     try {
-        // 1. Create user in Firebase Auth
         let userRecord;
         try {
             userRecord = await auth.createUser({
                 email,
                 displayName: name,
-                emailVerified: true, // Auto-verify email on creation via trusted server action
+                emailVerified: true, 
             });
         } catch (error: any) {
             if (error.code === 'auth/email-already-exists') {
                 return { error: 'An account with this email already exists.' };
             }
-            throw error; // Rethrow other auth errors
+            throw error; 
         }
         
-        // 2. Create user document in Firestore
         const membershipId = `MEM-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
         const userRef = doc(db, 'users', userRecord.uid);
         
@@ -274,7 +267,6 @@ export async function getUser(email: string): Promise<User | null> {
     
     const userData = querySnapshot.docs[0].data();
     
-    // Convert Firestore Timestamp to ISO string for serialization
     if (userData.joinDate && userData.joinDate.toDate) {
         return {
             ...userData,
