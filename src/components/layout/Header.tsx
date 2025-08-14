@@ -2,9 +2,11 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu } from 'lucide-react';
+import { Menu, User } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -21,7 +23,16 @@ const navLinks = [
 export default function Header() {
   const pathname = usePathname();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [user, setUser] = useState(false);
   const isAdminPage = pathname.startsWith('/admin') || pathname === '/login';
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(!!currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
 
   const handleLinkClick = () => {
     setIsSheetOpen(false);
@@ -65,7 +76,9 @@ export default function Header() {
                 </div>
                  {!isAdminPage && (
                     <Button asChild className="w-full mt-8">
-                        <Link href="/login" onClick={handleLinkClick}>Admin Login</Link>
+                        <Link href={ user ? "/account/dashboard" : "/login" } onClick={handleLinkClick}>
+                          {user ? 'My Account' : 'Login'}
+                        </Link>
                     </Button>
                 )}
               </SheetContent>
@@ -90,8 +103,11 @@ export default function Header() {
 
             <nav className="flex items-center">
                 {!isAdminPage && (
-                    <Button asChild>
-                        <Link href="/login">Admin Login</Link>
+                    <Button asChild variant={user ? "outline" : "default"}>
+                        <Link href={ user ? "/account/dashboard" : "/login" }>
+                          {user && <User className="mr-2 h-4 w-4" />}
+                          {user ? 'My Account' : 'Login'}
+                        </Link>
                     </Button>
                 )}
             </nav>

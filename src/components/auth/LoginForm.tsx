@@ -16,18 +16,29 @@ export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  
+  // Hardcoded admin email
+  const ADMIN_EMAIL = 'admin@flexfit.com';
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
       toast({
         title: 'Login Successful',
-        description: 'Redirecting to the dashboard...',
+        description: 'Redirecting to your dashboard...',
       });
-      router.push('/admin/dashboard');
+
+      if(user.email === ADMIN_EMAIL) {
+          router.push('/admin/dashboard');
+      } else {
+          router.push('/account/dashboard');
+      }
+
     } catch (error: any) {
         let description = 'An unexpected error occurred.';
         if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
@@ -51,7 +62,7 @@ export default function LoginForm() {
             <Input
               id="email"
               type="email"
-              placeholder="admin@flexfit.com"
+              placeholder="you@example.com"
               autoCapitalize="none"
               autoComplete="email"
               autoCorrect="off"

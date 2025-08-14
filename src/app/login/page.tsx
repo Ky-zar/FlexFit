@@ -10,15 +10,15 @@ export default function LoginPage() {
                 <Logo/>
             </div>
           <h1 className="font-headline text-2xl font-semibold tracking-tight">
-            Admin Login
+            Login to Your Account
           </h1>
           <p className="text-sm text-muted-foreground">
-            Enter your credentials to access the dashboard.
+            Enter your credentials to access your dashboard.
           </p>
         </div>
         <LoginForm />
         <p className="px-8 text-center text-sm text-muted-foreground">
-          This login is for authorized personnel only.
+          Welcome back to FlexFit.
         </p>
       </div>
     </div>

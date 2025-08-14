@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { db } from './firebase';
-import { collection, getDoc, doc, runTransaction, addDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, getDoc, doc, runTransaction, addDoc, serverTimestamp, setDoc, query, where, getDocs } from 'firebase/firestore';
 import type { GymClass, Booking } from './types';
 
 
@@ -133,10 +133,39 @@ export async function confirmBookingPayment(bookingId: string) {
         
         revalidatePath('/schedule');
         revalidatePath('/');
+        revalidatePath('/account/dashboard');
 
     } catch (error) {
         console.error("Payment confirmation failed: ", error);
         // Handle failed transaction (e.g. update booking status to 'failed')
         throw error;
     }
+}
+
+
+export async function getUserBookings(email: string): Promise<(Booking & { gymClass?: GymClass })[]> {
+    if (!email) return [];
+
+    const bookingsQuery = query(collection(db, 'bookings'), where('email', '==', email));
+    const bookingSnapshots = await getDocs(bookingsQuery);
+    
+    const bookings: (Booking & { gymClass?: GymClass })[] = [];
+
+    for (const bookingDoc of bookingSnapshots.docs) {
+        const booking = { id: bookingDoc.id, ...bookingDoc.data() } as Booking;
+        
+        const classRef = doc(db, 'classes', booking.classId);
+        const classSnap = await getDoc(classRef);
+
+        if (classSnap.exists()) {
+            booking.gymClass = { id: classSnap.id, ...classSnap.data() } as GymClass;
+        }
+        
+        bookings.push(booking);
+    }
+    
+    // Sort by class date, most recent first
+    bookings.sort((a, b) => new Date(b.gymClass?.date ?? 0).getTime() - new Date(a.gymClass?.date ?? 0).getTime());
+
+    return bookings;
 }

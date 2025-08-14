@@ -17,7 +17,7 @@ export interface Booking {
   name: string;
   email: string;
   spots: number;
-  bookingDate: string;
+  bookingDate: string; // Should be ISO string
   gymClass?: GymClass;
   status: 'pending' | 'confirmed' | 'cancelled';
   membershipId?: string | null;
@@ -27,7 +27,7 @@ export interface Announcement {
   id: string;
   title: string;
   content: string;
-  date: string;
+  date: string; // Should be ISO string
 }
 
 export interface MembershipTier {
