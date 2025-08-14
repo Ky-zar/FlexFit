@@ -48,6 +48,7 @@ const AnnouncementForm = ({ announcement, onSave }: { announcement?: Announcemen
             }
             onSave();
         } catch (error) {
+            console.error(error);
             toast({ variant: 'destructive', title: 'An error occurred.' });
         }
     };
@@ -77,7 +78,6 @@ export default function AnnouncementManager({ initialAnnouncements }: Announceme
     const { toast } = useToast();
 
     const refreshAnnouncements = async () => {
-         // This would re-fetch from Firestore in a real app, for now we simulate
         setIsFormOpen(false);
         window.location.reload(); // Simple way to refresh data
     };
@@ -126,7 +126,7 @@ export default function AnnouncementManager({ initialAnnouncements }: Announceme
                         {announcements.map((a) => (
                             <TableRow key={a.id}>
                                 <TableCell className="font-medium">{a.title}</TableCell>
-                                <TableCell>{format(parseISO(a.date), 'MMM d, yyyy')}</TableCell>
+                                <TableCell>{format(new Date(a.date), 'MMM d, yyyy')}</TableCell>
                                 <TableCell>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>

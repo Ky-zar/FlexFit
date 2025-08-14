@@ -1,5 +1,5 @@
 import { Megaphone, Calendar } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import type { Announcement } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { db } from '@/lib/firebase';
@@ -12,12 +12,13 @@ async function getAnnouncements(): Promise<Announcement[]> {
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => {
       const data = doc.data();
+      // Firestore Timestamps need to be converted to JS Dates.
+      const date = data.date instanceof Timestamp ? data.date.toDate() : new Date(data.date);
       return {
           id: doc.id,
           title: data.title,
           content: data.content,
-          // Convert Firestore Timestamp to a date string
-          date: (data.date as Timestamp).toDate().toISOString().split('T')[0],
+          date: date.toISOString(),
       } as Announcement;
   });
 }
@@ -47,7 +48,7 @@ export default async function AnnouncementsPage() {
                 </CardTitle>
                 <CardDescription className="flex items-center gap-2 pt-2 text-sm text-muted-foreground">
                   <Calendar className="h-4 w-4" />
-                  <span>{format(parseISO(announcement.date + 'T00:00:00'), 'MMMM d, yyyy')}</span>
+                  <span>{format(new Date(announcement.date), 'MMMM d, yyyy')}</span>
                 </CardDescription>
               </CardHeader>
               <CardContent>
