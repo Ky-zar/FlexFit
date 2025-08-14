@@ -11,32 +11,29 @@ function initializeAdminApp() {
         return;
     }
 
-    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    // Check for the new, individual environment variables
+    const projectId = process.env.FIREBASE_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    // The private key often has newline characters which need to be replaced.
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
-    if (!serviceAccountKey) {
-        console.error('CRITICAL: FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set.');
-        throw new Error('Server configuration error: Service account key is missing.');
+    if (!projectId || !clientEmail || !privateKey) {
+        console.error('CRITICAL: One or more Firebase Admin environment variables are missing (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY).');
+        throw new Error('Server configuration error: Firebase Admin credentials are not set correctly.');
     }
 
     try {
-        let serviceAccount;
-        // The key might be a JSON string or a base64 encoded JSON string.
-        // Try parsing directly first, which works for many environments.
-        try {
-            serviceAccount = JSON.parse(serviceAccountKey);
-        } catch (e) {
-            // If direct parsing fails, assume it's base64 encoded.
-            const decodedKey = Buffer.from(serviceAccountKey, 'base64').toString('utf-8');
-            serviceAccount = JSON.parse(decodedKey);
-        }
-
         adminApp = admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
+            credential: admin.credential.cert({
+                projectId,
+                clientEmail,
+                privateKey,
+            }),
         });
         console.log("Firebase Admin SDK initialized successfully.");
     } catch (error: any) {
         console.error('CRITICAL: Firebase Admin SDK initialization failed.', error.message);
-        throw new Error('Server configuration error: Could not initialize Firebase Admin SDK. Please ensure the service account key is a valid JSON or base64-encoded JSON.');
+        throw new Error('Server configuration error: Could not initialize Firebase Admin SDK. Please check the values of your Firebase environment variables.');
     }
 }
 
