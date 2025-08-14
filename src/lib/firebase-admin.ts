@@ -30,8 +30,12 @@ function initializeAdminApp() {
     try {
         serviceAccount = JSON.parse(serviceAccountKey);
     } catch (e) {
-        const decodedKey = Buffer.from(serviceAccountKey, 'base64').toString('utf-8');
-        serviceAccount = JSON.parse(decodedKey);
+        try {
+            const decodedKey = Buffer.from(serviceAccountKey, 'base64').toString('utf-8');
+            serviceAccount = JSON.parse(decodedKey);
+        } catch (decodeError) {
+             throw new Error("Failed to parse service account key as both direct JSON and Base64-encoded JSON.");
+        }
     }
 
     if (typeof serviceAccount !== 'object' || serviceAccount === null) {
