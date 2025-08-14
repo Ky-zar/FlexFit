@@ -39,3 +39,13 @@ export interface MembershipTier {
   features: string[];
   popular: boolean;
 }
+
+export interface User {
+  uid: string;
+  email: string;
+  name: string;
+  membershipId: string;
+  membershipTierId: string;
+  membershipIsAnnual: boolean;
+  joinDate: string; // ISO String
+}

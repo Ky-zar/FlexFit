@@ -1,15 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from "next/navigation";
-import { LogOut, Calendar, Star, Ticket } from "lucide-react";
+import { LogOut, Calendar, Star, Ticket, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { Booking, GymClass } from "@/lib/types";
+import type { Booking, GymClass, User } from "@/lib/types";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import UpcomingClasses from './UpcomingClasses';
+import { getUser } from '@/lib/actions';
 
 interface MemberDashboardProps {
     initialBookings: (Booking & { gymClass?: GymClass })[];
@@ -18,7 +19,21 @@ interface MemberDashboardProps {
 export default function MemberDashboard({ initialBookings }: MemberDashboardProps) {
     const router = useRouter();
     const { toast } = useToast();
-    const [user, setUser] = useState(auth.currentUser);
+    const [user, setUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
+    const currentUser = auth.currentUser;
+
+    useEffect(() => {
+        if(currentUser?.email) {
+            getUser(currentUser.email).then(userData => {
+                setUser(userData);
+                setLoading(false);
+            })
+        } else {
+            setLoading(false);
+        }
+    }, [currentUser]);
+
 
     const handleLogout = async () => {
         try {
@@ -37,7 +52,12 @@ export default function MemberDashboard({ initialBookings }: MemberDashboardProp
                      <h1 className="text-2xl font-bold text-foreground">
                         My Account
                     </h1>
-                    <p className="text-muted-foreground">Welcome back, {user?.displayName || user?.email}!</p>
+                    <p className="text-muted-foreground flex items-center gap-2">
+                        Welcome back, {user?.name || currentUser?.email}!
+                        {user?.membershipId && (
+                             <span className="font-mono text-xs bg-muted px-2 py-1 rounded-md">{user.membershipId}</span>
+                        )}
+                    </p>
                 </div>
                 <Button variant="outline" onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />

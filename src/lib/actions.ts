@@ -5,8 +5,10 @@ import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { db } from './firebase';
-import { collection, getDoc, doc, runTransaction, addDoc, serverTimestamp, setDoc, query, where, getDocs } from 'firebase/firestore';
-import type { GymClass, Booking } from './types';
+import { collection, getDoc, doc, runTransaction, addDoc, serverTimestamp, setDoc, query, where, getDocs, updateDoc, writeBatch } from 'firebase/firestore';
+import type { GymClass, Booking, User } from './types';
+import { getAuth } from 'firebase-admin/auth';
+import { adminApp } from './firebase-admin';
 
 
 const bookingSchema = z.object({
@@ -94,12 +96,13 @@ export async function createBooking(prevState: BookingState, formData: FormData)
                 ...newBookingData,
                 bookingDate: serverTimestamp(),
             });
-            // Note: bookedSpots are now updated via a Cloud Function trigger for consistency
+            // The bookedSpots are now updated via a Cloud Function trigger for consistency.
         });
         
         revalidatePath('/schedule');
         revalidatePath('/');
-        redirect(`/confirmation/${newBookingId}?classId=${classId}`);
+        return { redirectUrl: `/confirmation/${newBookingId}?classId=${classId}` };
+
     } else {
        // For paid classes, just create the 'pending' booking, then redirect to checkout
        await setDoc(newBookingRef, {
@@ -118,18 +121,12 @@ export async function createBooking(prevState: BookingState, formData: FormData)
 
 
 export async function confirmBookingPayment(bookingId: string) {
+    'use server';
     const bookingRef = doc(db, 'bookings', bookingId);
 
     try {
-        await runTransaction(db, async (transaction) => {
-            const bookingDoc = await transaction.get(bookingRef);
-            if (!bookingDoc.exists() || bookingDoc.data().status !== 'pending') {
-                throw new Error("Booking not found or already processed.");
-            }
-            
-            // The Cloud Function will handle spot counting when the status changes.
-            transaction.update(bookingRef, { status: 'confirmed' });
-        });
+        // The Cloud Function will handle spot counting when the status changes.
+        await updateDoc(bookingRef, { status: 'confirmed' });
         
         revalidatePath('/schedule');
         revalidatePath('/');
@@ -137,7 +134,6 @@ export async function confirmBookingPayment(bookingId: string) {
 
     } catch (error) {
         console.error("Payment confirmation failed: ", error);
-        // Handle failed transaction (e.g. update booking status to 'failed')
         throw error;
     }
 }
@@ -146,7 +142,7 @@ export async function confirmBookingPayment(bookingId: string) {
 export async function getUserBookings(email: string): Promise<(Booking & { gymClass?: GymClass })[]> {
     if (!email) return [];
 
-    const bookingsQuery = query(collection(db, 'bookings'), where('email', '==', email));
+    const bookingsQuery = query(collection(db, 'bookings'), where('email', '==', email), where('status', '==', 'confirmed'));
     const bookingSnapshots = await getDocs(bookingsQuery);
     
     const bookings: (Booking & { gymClass?: GymClass })[] = [];
@@ -168,4 +164,83 @@ export async function getUserBookings(email: string): Promise<(Booking & { gymCl
     bookings.sort((a, b) => new Date(b.gymClass?.date ?? 0).getTime() - new Date(a.gymClass?.date ?? 0).getTime());
 
     return bookings;
+}
+
+const purchaseMembershipSchema = z.object({
+    tierId: z.string(),
+    isAnnual: z.boolean(),
+    email: z.string().email(),
+    name: z.string().min(2),
+});
+
+export async function purchaseMembership(input: z.infer<typeof purchaseMembershipSchema>) {
+    const validated = purchaseMembershipSchema.safeParse(input);
+    if(!validated.success) return { error: "Invalid input." };
+
+    const { tierId, isAnnual, email, name } = validated.data;
+    const auth = getAuth(adminApp);
+
+    try {
+        // 1. Create user in Firebase Auth
+        let userRecord = await auth.createUser({
+            email,
+            displayName: name,
+            emailVerified: true, // We can assume email is good since payment went through
+        });
+        
+        // 2. Create user document in Firestore
+        const membershipId = `MEM-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+        const userRef = doc(db, 'users', userRecord.uid);
+        
+        await setDoc(userRef, {
+            uid: userRecord.uid,
+            email,
+            name,
+            membershipId,
+            membershipTierId: tierId,
+            membershipIsAnnual: isAnnual,
+            joinDate: serverTimestamp(),
+        });
+        
+        return { uid: userRecord.uid };
+
+    } catch (error: any) {
+        if (error.code === 'auth/email-already-exists') {
+            return { error: 'An account with this email already exists.' };
+        }
+        console.error(error);
+        return { error: 'Failed to create account.' };
+    }
+}
+
+const setPasswordSchema = z.object({
+    email: z.string().email(),
+    password: z.string().min(6, 'Password must be at least 6 characters.')
+});
+
+export async function setInitialPassword(input: z.infer<typeof setPasswordSchema>) {
+    const validated = setPasswordSchema.safeParse(input);
+    if (!validated.success) {
+        return { error: validated.error.flatten().fieldErrors.password?.[0] || "Invalid input" };
+    }
+    
+    const { email, password } = validated.data;
+    const auth = getAuth(adminApp);
+    
+    try {
+        const user = await auth.getUserByEmail(email);
+        await auth.updateUser(user.uid, { password });
+        return { success: true };
+    } catch (error) {
+        console.error(error);
+        return { error: 'Could not set password.' };
+    }
+}
+
+export async function getUser(email: string): Promise<User | null> {
+    if (!email) return null;
+    const userQuery = query(collection(db, 'users'), where('email', '==', email));
+    const querySnapshot = await getDocs(userQuery);
+    if(querySnapshot.empty) return null;
+    return querySnapshot.docs[0].data() as User;
 }
