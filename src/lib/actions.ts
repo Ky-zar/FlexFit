@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { db } from './firebase';
-import { collection, getDoc, doc, runTransaction, addDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, getDoc, doc, runTransaction, addDoc, serverTimestamp, setDoc } from 'firestore';
 import type { GymClass } from './types';
 
 
@@ -35,12 +35,16 @@ export async function createBooking(prevState: any, formData: FormData) {
   
   const { classId, name, email, spots, membershipId } = validatedFields.data;
 
+  const classRef = doc(db, 'classes', classId);
+  let newBookingId: string;
+  
   try {
-    const classRef = doc(db, 'classes', classId);
-    let newBookingId: string;
-    let gymClass: GymClass;
+    const classDoc = await getDoc(classRef);
+    if (!classDoc.exists()) {
+        throw new Error('Class not found.');
+    }
+    const gymClass = classDoc.data() as GymClass;
 
-    // We create the booking document first with a 'pending' status.
     const newBookingRef = doc(collection(db, 'bookings'));
     newBookingId = newBookingRef.id;
 
@@ -51,17 +55,9 @@ export async function createBooking(prevState: any, formData: FormData) {
         spots,
         membershipId: membershipId || null,
         bookingDate: serverTimestamp(),
-        status: 'pending' // 'pending', 'confirmed', 'cancelled'
+        status: 'pending'
     });
-    
-    const classDoc = await getDoc(classRef);
-    if (!classDoc.exists()) {
-        throw new Error('Class not found.');
-    }
-    gymClass = classDoc.data() as GymClass;
 
-    // If class is free, confirm booking immediately.
-    // Otherwise, redirect to checkout.
     if (!gymClass.price || gymClass.price <= 0) {
         await runTransaction(db, async (transaction) => {
             const freshClassDoc = await transaction.get(classRef);
@@ -79,11 +75,10 @@ export async function createBooking(prevState: any, formData: FormData) {
         
         revalidatePath('/schedule');
         revalidatePath('/');
-        redirect(`/confirmation/${newBookingId}?classId=${classId}`);
     } else {
-        // For paid classes, we redirect to a new checkout page.
-        // The booking status remains 'pending' until payment is confirmed there.
-        redirect(`/book/checkout?bookingId=${newBookingId}`);
+       // For paid classes, we redirect to a new checkout page.
+       // The booking status remains 'pending' until payment is confirmed there.
+       return redirect(`/book/checkout?bookingId=${newBookingId}`);
     }
 
   } catch (error: any) {
@@ -91,4 +86,7 @@ export async function createBooking(prevState: any, formData: FormData) {
       message: error.message || 'An unexpected error occurred during booking.',
     }
   }
+
+  // Redirect for free class confirmation
+  return redirect(`/confirmation/${newBookingId}?classId=${classId}`);
 }

@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { redirect } from 'next/navigation';
 
 interface BookingFormProps {
   gymClass: GymClass;
@@ -32,11 +33,10 @@ export default function BookingForm({ gymClass }: BookingFormProps) {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (state.message && !state.errors) {
-      // Don't show a toast if the message is the redirect signal
-      if (state.message === 'NEXT_REDIRECT') {
-        return;
-      }
+    if (state instanceof URL) {
+      redirect(state.toString());
+    }
+    if (state?.message && !state.errors) {
       toast({
         variant: "destructive",
         title: "Booking Failed",
@@ -58,28 +58,28 @@ export default function BookingForm({ gymClass }: BookingFormProps) {
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
             <Input id="name" name="name" placeholder="John Doe" required />
-            {state.errors?.name && <p className="text-sm font-medium text-destructive">{state.errors.name[0]}</p>}
+            {state?.errors?.name && <p className="text-sm font-medium text-destructive">{state.errors.name[0]}</p>}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>
             <Input id="email" name="email" type="email" placeholder="you@example.com" required />
-            {state.errors?.email && <p className="text-sm font-medium text-destructive">{state.errors.email[0]}</p>}
+            {state?.errors?.email && <p className="text-sm font-medium text-destructive">{state.errors.email[0]}</p>}
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="spots">Number of Spots</Label>
             <Input id="spots" name="spots" type="number" defaultValue="1" min="1" max={gymClass.maxSpots - gymClass.bookedSpots} required />
-             {state.errors?.spots && <p className="text-sm font-medium text-destructive">{state.errors.spots[0]}</p>}
+             {state?.errors?.spots && <p className="text-sm font-medium text-destructive">{state.errors.spots[0]}</p>}
           </div>
 
            <div className="space-y-2">
             <Label htmlFor="membershipId">Membership ID (Optional)</Label>
             <Input id="membershipId" name="membershipId" placeholder="MEM12345" />
-            {state.errors?.membershipId && <p className="text-sm font-medium text-destructive">{state.errors.membershipId[0]}</p>}
+            {state?.errors?.membershipId && <p className="text-sm font-medium text-destructive">{state.errors.membershipId[0]}</p>}
           </div>
           
-          {state.message && !state.errors && state.message !== 'NEXT_REDIRECT' && (
+          {state?.message && !state.errors && (
              <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Error</AlertTitle>
