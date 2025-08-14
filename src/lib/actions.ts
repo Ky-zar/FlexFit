@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -13,6 +14,7 @@ const bookingSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   email: z.string().email('Invalid email address.'),
   spots: z.coerce.number().int().min(1, 'You must book at least 1 spot.'),
+  membershipId: z.string().optional(),
 });
 
 export async function createBooking(prevState: any, formData: FormData) {
@@ -21,6 +23,7 @@ export async function createBooking(prevState: any, formData: FormData) {
     name: formData.get('name'),
     email: formData.get('email'),
     spots: formData.get('spots'),
+    membershipId: formData.get('membershipId'),
   });
 
   if (!validatedFields.success) {
@@ -30,7 +33,17 @@ export async function createBooking(prevState: any, formData: FormData) {
     };
   }
   
-  const { classId, name, email, spots } = validatedFields.data;
+  const { classId, name, email, spots, membershipId } = validatedFields.data;
+
+  // Placeholder for discount logic
+  if (membershipId) {
+    // In a real app, you would look up the membershipId in your database
+    // to verify it's valid and determine the discount.
+    // For example:
+    // const membership = await getMembership(membershipId);
+    // if (membership.type === 'premium') { /* apply discount */ }
+    console.log(`Membership ID ${membershipId} provided. Discount logic would apply here.`);
+  }
 
   try {
     const classRef = doc(db, 'classes', classId);
@@ -57,6 +70,7 @@ export async function createBooking(prevState: any, formData: FormData) {
         name,
         email,
         spots,
+        membershipId: membershipId || null,
         bookingDate: serverTimestamp(),
       });
       return newBookingRef.id;

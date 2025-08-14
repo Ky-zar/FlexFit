@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
@@ -66,6 +67,12 @@ export default function BookingForm({ gymClass }: BookingFormProps) {
             <Label htmlFor="spots">Number of Spots</Label>
             <Input id="spots" name="spots" type="number" defaultValue="1" min="1" max={gymClass.maxSpots - gymClass.bookedSpots} required />
              {state.errors?.spots && <p className="text-sm font-medium text-destructive">{state.errors.spots[0]}</p>}
+          </div>
+
+           <div className="space-y-2">
+            <Label htmlFor="membershipId">Membership ID (Optional)</Label>
+            <Input id="membershipId" name="membershipId" placeholder="MEM12345" />
+            {state.errors?.membershipId && <p className="text-sm font-medium text-destructive">{state.errors.membershipId[0]}</p>}
           </div>
           
           {state.message && !state.errors && (
