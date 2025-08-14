@@ -191,15 +191,13 @@ const purchaseMembershipSchema = z.object({
 export async function purchaseMembership(input: z.infer<typeof purchaseMembershipSchema>) {
     const validated = purchaseMembershipSchema.safeParse(input);
     if(!validated.success) {
-        console.error("Invalid input for purchaseMembership:", validated.error.flatten());
         return { error: "Invalid input provided." };
     }
    
     const { tierId, tierName, isAnnual, email, name } = validated.data;
     
     if (!adminApp) {
-        console.error("CRITICAL: Firebase Admin SDK is not initialized.");
-        return { error: "Server configuration error. Please contact support." };
+        return { error: "Admin SDK not initialized. Contact support." };
     }
 
     const auth = getAuth(adminApp);
@@ -207,23 +205,19 @@ export async function purchaseMembership(input: z.infer<typeof purchaseMembershi
     try {
         let userRecord;
         try {
-            // Create user in Firebase Auth
             userRecord = await auth.createUser({
                 email,
                 displayName: name,
-                emailVerified: true, // We can assume verification for this flow
+                emailVerified: true, 
             });
         } catch (error: any) {
             if (error.code === 'auth/email-already-exists') {
-                // If user already exists, just get their record.
                 userRecord = await auth.getUserByEmail(email);
             } else {
-                // For other auth errors, re-throw them.
                 throw error;
             }
         }
         
-        // Now create the user profile in Firestore
         const membershipId = `MEM-${userRecord.uid.slice(0, 6).toUpperCase()}`;
         const userRef = doc(db, 'users', userRecord.uid);
         
@@ -263,8 +257,7 @@ export async function setInitialPassword(input: z.infer<typeof setPasswordSchema
     const { email, password } = validated.data;
 
     if (!adminApp) {
-        console.error("CRITICAL: Firebase Admin SDK is not initialized.");
-        return { error: "Server configuration error. Please contact support." };
+        return { error: 'Admin SDK not initialized. Contact support.' };
     }
     const auth = getAuth(adminApp);
     
@@ -280,21 +273,27 @@ export async function setInitialPassword(input: z.infer<typeof setPasswordSchema
 
 export async function getUser(email: string): Promise<User | null> {
     if (!email) return null;
+    
     const userQuery = query(collection(db, 'users'), where('email', '==', email));
     const querySnapshot = await getDocs(userQuery);
-    if(querySnapshot.empty) return null;
+    
+    if (querySnapshot.empty) return null;
     
     const userDoc = querySnapshot.docs[0];
     const userData = userDoc.data();
     
-    // Ensure joinDate is a string
-    const joinDate = userData.joinDate instanceof Timestamp 
-        ? userData.joinDate.toDate().toISOString() 
-        : userData.joinDate;
-
-    return {
-        ...userData,
+    const joinDate = userData.joinDate;
+    
+    const user: User = {
         uid: userDoc.id,
+        email: userData.email,
+        name: userData.name,
+        membershipId: userData.membershipId,
+        membershipTierId: userData.membershipTierId,
+        membershipTierName: userData.membershipTierName,
+        membershipIsAnnual: userData.membershipIsAnnual,
         joinDate: joinDate,
-    } as User;
+    };
+    
+    return user;
 }

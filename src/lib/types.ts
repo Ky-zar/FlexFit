@@ -51,7 +51,7 @@ export interface User {
   membershipTierId: string;
   membershipTierName: string;
   membershipIsAnnual: boolean;
-  joinDate: string; 
+  joinDate: string; // Keep as ISO string
 }
 
 export type BookingState = {
