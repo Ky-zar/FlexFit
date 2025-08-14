@@ -25,3 +25,13 @@ export interface Announcement {
   content: string;
   date: string;
 }
+
+export interface MembershipTier {
+  id: string;
+  name: string;
+  description: string;
+  monthlyPrice: number;
+  annualPrice: number;
+  features: string[];
+  popular: boolean;
+}

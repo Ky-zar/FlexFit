@@ -1,13 +1,14 @@
 'use client';
 
 import { useRouter } from "next/navigation";
-import { LogOut, Calendar } from "lucide-react";
+import { LogOut, Calendar, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ClassManager from "./ClassManager";
 import AnnouncementManager from "./AnnouncementManager";
 import CalendarView from "./CalendarView";
-import type { Announcement, GymClass } from "@/lib/types";
+import MembershipManager from "./MembershipManager";
+import type { Announcement, GymClass, MembershipTier } from "@/lib/types";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -16,9 +17,10 @@ import { useToast } from "@/hooks/use-toast";
 interface AdminDashboardProps {
     initialClasses: GymClass[];
     initialAnnouncements: Announcement[];
+    initialTiers: MembershipTier[];
 }
 
-export default function AdminDashboard({ initialClasses, initialAnnouncements }: AdminDashboardProps) {
+export default function AdminDashboard({ initialClasses, initialAnnouncements, initialTiers }: AdminDashboardProps) {
     const router = useRouter();
     const { toast } = useToast();
 
@@ -46,9 +48,13 @@ export default function AdminDashboard({ initialClasses, initialAnnouncements }:
 
             <main className="mt-8">
                 <Tabs defaultValue="classes">
-                    <TabsList className="grid w-full grid-cols-3 md:w-[600px]">
+                    <TabsList className="grid w-full grid-cols-4 md:w-[800px]">
                         <TabsTrigger value="classes">Manage Classes</TabsTrigger>
                         <TabsTrigger value="announcements">Manage Announcements</TabsTrigger>
+                        <TabsTrigger value="memberships">
+                            <Star className="mr-2 h-4 w-4" />
+                            Manage Memberships
+                        </TabsTrigger>
                         <TabsTrigger value="calendar">
                             <Calendar className="mr-2 h-4 w-4" />
                             Calendar
@@ -59,6 +65,9 @@ export default function AdminDashboard({ initialClasses, initialAnnouncements }:
                     </TabsContent>
                     <TabsContent value="announcements">
                         <AnnouncementManager initialAnnouncements={initialAnnouncements} />
+                    </TabsContent>
+                    <TabsContent value="memberships">
+                        <MembershipManager initialTiers={initialTiers} />
                     </TabsContent>
                     <TabsContent value="calendar">
                         <CalendarView classes={initialClasses} />
