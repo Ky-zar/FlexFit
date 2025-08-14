@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { db } from './firebase';
-import { collection, getDoc, doc, runTransaction, addDoc, serverTimestamp, setDoc } from 'firestore';
+import { collection, getDoc, doc, runTransaction, addDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import type { GymClass } from './types';
 
 
