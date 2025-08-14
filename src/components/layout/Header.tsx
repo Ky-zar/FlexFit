@@ -59,7 +59,7 @@ export default function Header() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left">
-                <Link href="/" className="mb-8" onClick={handleLinkClick}>
+                <Link href="/" className="mb-8 block" onClick={handleLinkClick}>
                   <Logo />
                 </Link>
                 <div className="flex flex-col space-y-4">
