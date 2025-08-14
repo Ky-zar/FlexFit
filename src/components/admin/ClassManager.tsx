@@ -13,44 +13,136 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import type { GymClass } from '@/lib/types';
-import { PLACEHOLDER_BOOKINGS } from '@/lib/placeholder-data';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import type { GymClass, Booking } from '@/lib/types';
+import { Input } from '../ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { db } from '@/lib/firebase';
+import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, query, where } from 'firebase/firestore';
+import { Label } from '../ui/label';
 
 interface ClassManagerProps {
     initialClasses: GymClass[];
 }
 
-// Dummy form for add/edit class. In a real app, this would be a proper form with state management.
-const ClassForm = () => (
-    <div className="space-y-4">
-        <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700">Class Title</label>
-            <input type="text" id="title" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm" />
-        </div>
-        <div>
-            <label htmlFor="date" className="block text-sm font-medium text-gray-700">Date</label>
-            <input type="date" id="date" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm" />
-        </div>
-        <div>
-            <label htmlFor="time" className="block text-sm font-medium text-gray-700">Time</label>
-            <input type="time" id="time" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm" />
-        </div>
-        <div>
-            <label htmlFor="trainer" className="block text-sm font-medium text-gray-700">Trainer</label>
-            <input type="text" id="trainer" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm" />
-        </div>
-        <div>
-            <label htmlFor="maxSpots" className="block text-sm font-medium text-gray-700">Max Spots</label>
-            <input type="number" id="maxSpots" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm" />
-        </div>
-        <Button className="w-full">Save Class</Button>
-    </div>
-);
+const ClassForm = ({ gymClass, onSave }: { gymClass?: GymClass, onSave: () => void }) => {
+    const { toast } = useToast();
+    const [formState, setFormState] = useState({
+        title: gymClass?.title || '',
+        date: gymClass?.date || '',
+        time: gymClass?.time || '',
+        trainer: gymClass?.trainer || '',
+        maxSpots: gymClass?.maxSpots || 10,
+        description: gymClass?.description || '',
+    });
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { id, value } = e.target;
+        setFormState(prev => ({ ...prev, [id]: id === 'maxSpots' ? Number(value) : value }));
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            if (gymClass) {
+                await updateDoc(doc(db, 'classes', gymClass.id), { ...formState, bookedSpots: gymClass.bookedSpots || 0 });
+                toast({ title: "Class updated successfully!" });
+            } else {
+                await addDoc(collection(db, 'classes'), { ...formState, bookedSpots: 0 });
+                toast({ title: "Class created successfully!" });
+            }
+            onSave();
+        } catch (error) {
+            console.error(error);
+            toast({ variant: 'destructive', title: "An error occurred." });
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+             <div><Label htmlFor="title">Class Title</Label><Input id="title" value={formState.title} onChange={handleChange}/></div>
+             <div><Label htmlFor="description">Description</Label><Input id="description" value={formState.description} onChange={handleChange}/></div>
+             <div><Label htmlFor="date">Date</Label><Input type="date" id="date" value={formState.date} onChange={handleChange} /></div>
+             <div><Label htmlFor="time">Time</Label><Input type="time" id="time" value={formState.time} onChange={handleChange} /></div>
+             <div><Label htmlFor="trainer">Trainer</Label><Input id="trainer" value={formState.trainer} onChange={handleChange} /></div>
+             <div><Label htmlFor="maxSpots">Max Spots</Label><Input type="number" id="maxSpots" value={formState.maxSpots} onChange={handleChange} /></div>
+            <DialogFooter>
+                <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
+                <Button type="submit">Save Class</Button>
+            </DialogFooter>
+        </form>
+    );
+}
+
+const ViewBookingsDialog = ({ classId, classTitle }: { classId: string, classTitle: string }) => {
+    const [bookings, setBookings] = useState<Booking[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useState(() => {
+        const fetchBookings = async () => {
+            setLoading(true);
+            const q = query(collection(db, "bookings"), where("classId", "==", classId));
+            const querySnapshot = await getDocs(q);
+            const classBookings = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Booking));
+            setBookings(classBookings);
+            setLoading(false);
+        };
+        fetchBookings();
+    });
+
+     return (
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Bookings for {classTitle}</DialogTitle>
+            </DialogHeader>
+            <div className="mt-4">
+                {loading ? <p>Loading...</p> : bookings.length > 0 ? (
+                     <ul className="space-y-2">
+                        {bookings.map(b => (
+                            <li key={b.id} className="text-sm p-2 bg-muted rounded-md">{b.name} ({b.email}) - {b.spots} spot(s)</li>
+                        ))}
+                    </ul>
+                ) : <p className="text-sm text-muted-foreground">No bookings for this class yet.</p>}
+            </div>
+        </DialogContent>
+    )
+
+}
 
 export default function ClassManager({ initialClasses }: ClassManagerProps) {
     const [classes, setClasses] = useState<GymClass[]>(initialClasses);
-    const bookings = PLACEHOLDER_BOOKINGS;
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [isBookingsOpen, setIsBookingsOpen] = useState(false);
+    const [selectedClass, setSelectedClass] = useState<GymClass | undefined>(undefined);
+    const { toast } = useToast();
+
+    const refreshClasses = () => {
+        setIsFormOpen(false);
+        window.location.reload(); // Simple way to refresh data
+    };
+    
+    const handleDelete = async (id: string) => {
+        if(window.confirm('Are you sure? This will delete the class and all associated bookings.')) {
+            try {
+                await deleteDoc(doc(db, 'classes', id));
+                // In a real app, you might also want to delete bookings via a cloud function.
+                toast({ title: 'Class deleted.'});
+                setClasses(classes.filter(c => c.id !== id));
+            } catch (error) {
+                 toast({ variant: 'destructive', title: 'Failed to delete class.'});
+            }
+        }
+    }
+    
+    const openFormDialog = (gymClass?: GymClass) => {
+        setSelectedClass(gymClass);
+        setIsFormOpen(true);
+    }
+    
+    const openBookingsDialog = (gymClass: GymClass) => {
+        setSelectedClass(gymClass);
+        setIsBookingsOpen(true);
+    }
 
     return (
         <Card>
@@ -60,21 +152,10 @@ export default function ClassManager({ initialClasses }: ClassManagerProps) {
                         <CardTitle>Classes</CardTitle>
                         <CardDescription>Manage your gym classes here.</CardDescription>
                     </div>
-                     <Dialog>
-                        <DialogTrigger asChild>
-                            <Button size="sm" className="gap-1">
-                                <PlusCircle className="h-3.5 w-3.5" />
-                                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Add Class</span>
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Add New Class</DialogTitle>
-                                <DialogDescription>Fill in the details for the new class.</DialogDescription>
-                            </DialogHeader>
-                            <ClassForm />
-                        </DialogContent>
-                    </Dialog>
+                     <Button size="sm" className="gap-1" onClick={() => openFormDialog()}>
+                        <PlusCircle className="h-3.5 w-3.5" />
+                        <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Add Class</span>
+                    </Button>
                 </div>
             </CardHeader>
             <CardContent>
@@ -96,44 +177,38 @@ export default function ClassManager({ initialClasses }: ClassManagerProps) {
                                 <TableCell>{format(new Date(c.date), 'MMM d, yyyy')} at {c.time}</TableCell>
                                 <TableCell>{c.bookedSpots} / {c.maxSpots}</TableCell>
                                 <TableCell>
-                                    <Dialog>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button aria-haspopup="true" size="icon" variant="ghost">
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                    <span className="sr-only">Toggle menu</span>
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DialogTrigger asChild>
-                                                    <DropdownMenuItem><Users className="mr-2 h-4 w-4"/>View Bookings</DropdownMenuItem>
-                                                </DialogTrigger>
-                                                <DropdownMenuItem>Edit</DropdownMenuItem>
-                                                <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                        <DialogContent>
-                                            <DialogHeader>
-                                                <DialogTitle>Bookings for {c.title}</DialogTitle>
-                                            </DialogHeader>
-                                            <div className="mt-4">
-                                                {bookings.filter(b => b.classId === c.id).length > 0 ? (
-                                                     <ul className="space-y-2">
-                                                        {bookings.filter(b => b.classId === c.id).map(b => (
-                                                            <li key={b.id} className="text-sm p-2 bg-muted rounded-md">{b.name} ({b.email}) - {b.spots} spot(s)</li>
-                                                        ))}
-                                                    </ul>
-                                                ) : <p className="text-sm text-muted-foreground">No bookings for this class yet.</p>}
-                                            </div>
-                                        </DialogContent>
-                                    </Dialog>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button aria-haspopup="true" size="icon" variant="ghost">
+                                                <MoreHorizontal className="h-4 w-4" />
+                                                <span className="sr-only">Toggle menu</span>
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                            <DropdownMenuItem onSelect={() => openBookingsDialog(c)}><Users className="mr-2 h-4 w-4"/>View Bookings</DropdownMenuItem>
+                                            <DropdownMenuItem onSelect={() => openFormDialog(c)}>Edit</DropdownMenuItem>
+                                            <DropdownMenuItem className="text-destructive" onSelect={() => handleDelete(c.id)}>Delete</DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
             </CardContent>
+            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                 <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{selectedClass ? 'Edit' : 'Add New'} Class</DialogTitle>
+                        <DialogDescription>{selectedClass ? 'Update the' : 'Fill in the'} details for the class.</DialogDescription>
+                    </DialogHeader>
+                    <ClassForm gymClass={selectedClass} onSave={refreshClasses} />
+                </DialogContent>
+            </Dialog>
+            <Dialog open={isBookingsOpen} onOpenChange={setIsBookingsOpen}>
+                {selectedClass && <ViewBookingsDialog classId={selectedClass.id} classTitle={selectedClass.title} />}
+            </Dialog>
         </Card>
     );
 }

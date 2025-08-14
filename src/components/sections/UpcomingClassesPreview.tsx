@@ -2,12 +2,16 @@ import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import ClassCard from '@/components/ClassCard';
-import { PLACEHOLDER_CLASSES } from '@/lib/placeholder-data';
 import type { GymClass } from '@/lib/types';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+
 
 async function getUpcomingClasses(): Promise<GymClass[]> {
-  // In a real app, you would fetch this from Firestore
-  return Promise.resolve(PLACEHOLDER_CLASSES.slice(0, 3));
+  const classesCol = collection(db, 'classes');
+  const q = query(classesCol, orderBy('date'), orderBy('time'), limit(3));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GymClass));
 }
 
 export default async function UpcomingClassesPreview() {

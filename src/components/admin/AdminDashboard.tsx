@@ -8,6 +8,10 @@ import Logo from "@/components/Logo";
 import ClassManager from "./ClassManager";
 import AnnouncementManager from "./AnnouncementManager";
 import type { Announcement, GymClass } from "@/lib/types";
+import { auth } from "@/lib/firebase";
+import { signOut } from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
+
 
 interface AdminDashboardProps {
     initialClasses: GymClass[];
@@ -16,10 +20,16 @@ interface AdminDashboardProps {
 
 export default function AdminDashboard({ initialClasses, initialAnnouncements }: AdminDashboardProps) {
     const router = useRouter();
+    const { toast } = useToast();
 
-    const handleLogout = () => {
-        localStorage.removeItem('flexfit-admin-auth');
-        router.push('/login');
+    const handleLogout = async () => {
+        try {
+            await signOut(auth);
+            toast({ title: 'Logged out successfully.' });
+            router.push('/login');
+        } catch (error) {
+            toast({ variant: "destructive", title: 'Failed to log out.' });
+        }
     };
 
     return (

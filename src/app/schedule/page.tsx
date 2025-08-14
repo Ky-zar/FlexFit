@@ -1,10 +1,13 @@
 import ClassList from '@/components/schedule/ClassList';
-import { PLACEHOLDER_CLASSES } from '@/lib/placeholder-data';
 import type { GymClass } from '@/lib/types';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 
 async function getAllClasses(): Promise<GymClass[]> {
-  // In a real app, you would fetch this from Firestore
-  return Promise.resolve(PLACEHOLDER_CLASSES);
+  const classesCol = collection(db, 'classes');
+  const q = query(classesCol, orderBy('date'), orderBy('time'));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GymClass));
 }
 
 export default async function SchedulePage() {

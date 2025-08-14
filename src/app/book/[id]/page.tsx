@@ -2,15 +2,22 @@ import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
 import { Calendar, Clock, User } from 'lucide-react';
 
-import { PLACEHOLDER_CLASSES } from '@/lib/placeholder-data';
 import type { GymClass } from '@/lib/types';
 import BookingForm from '@/components/booking/BookingForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 async function getClassDetails(id: string): Promise<GymClass | undefined> {
-  // In a real app, fetch from Firestore
-  return Promise.resolve(PLACEHOLDER_CLASSES.find((c) => c.id === id));
+  const docRef = doc(db, 'classes', id);
+  const docSnap = await getDoc(docRef);
+
+  if (docSnap.exists()) {
+    return { id: docSnap.id, ...docSnap.data() } as GymClass;
+  } else {
+    return undefined;
+  }
 }
 
 export default async function BookClassPage({ params }: { params: { id: string } }) {

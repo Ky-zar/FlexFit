@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminLayout({
@@ -10,21 +12,23 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [isVerified, setIsVerified] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, you would have a proper auth check here,
-    // probably using a context provider and Firebase Auth SDK.
-    const isAuthenticated = localStorage.getItem('flexfit-admin-auth') === 'true';
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+      } else {
+        router.push('/login');
+      }
+      setLoading(false);
+    });
 
-    if (!isAuthenticated) {
-      router.push('/login');
-    } else {
-      setIsVerified(true);
-    }
+    return () => unsubscribe();
   }, [router]);
 
-  if (!isVerified) {
+  if (loading) {
     return (
         <div className="flex flex-col h-screen p-8">
             <div className="flex items-center space-x-4 mb-8">
@@ -41,6 +45,8 @@ export default function AdminLayout({
         </div>
     );
   }
+
+  if(!user) return null; // Or a redirect component
 
   return <>{children}</>;
 }

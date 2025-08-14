@@ -1,10 +1,21 @@
 import AdminDashboard from "@/components/admin/AdminDashboard";
-import { PLACEHOLDER_ANNOUNCEMENTS, PLACEHOLDER_CLASSES } from "@/lib/placeholder-data";
+import { db } from "@/lib/firebase";
+import { collection, getDocs } from "firebase/firestore";
+import type { GymClass, Announcement } from "@/lib/types";
 
-export default function AdminDashboardPage() {
-    // In a real app, you'd fetch this data from Firestore
-    const classes = PLACEHOLDER_CLASSES;
-    const announcements = PLACEHOLDER_ANNOUNCEMENTS;
+async function getAdminData() {
+    const classesSnapshot = await getDocs(collection(db, "classes"));
+    const classes: GymClass[] = classesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GymClass));
+
+    const announcementsSnapshot = await getDocs(collection(db, "announcements"));
+    const announcements: Announcement[] = announcementsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Announcement));
+    
+    return { classes, announcements };
+}
+
+
+export default async function AdminDashboardPage() {
+    const { classes, announcements } = await getAdminData();
 
     return (
         <div className="min-h-screen bg-muted/40">

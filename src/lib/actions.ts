@@ -3,6 +3,10 @@
 import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
+import { db } from './firebase';
+import { collection, getDoc, doc, runTransaction, addDoc, serverTimestamp } from 'firebase/firestore';
+import type { GymClass } from './types';
+
 
 const bookingSchema = z.object({
   classId: z.string(),
@@ -10,10 +14,6 @@ const bookingSchema = z.object({
   email: z.string().email('Invalid email address.'),
   spots: z.coerce.number().int().min(1, 'You must book at least 1 spot.'),
 });
-
-// In a real app, these functions would interact with your database (e.g., Firestore).
-// For this example, we'll simulate the interaction.
-import { PLACEHOLDER_CLASSES, PLACEHOLDER_BOOKINGS } from './placeholder-data';
 
 export async function createBooking(prevState: any, formData: FormData) {
   const validatedFields = bookingSchema.safeParse({
@@ -32,35 +32,43 @@ export async function createBooking(prevState: any, formData: FormData) {
   
   const { classId, name, email, spots } = validatedFields.data;
 
-  // Simulate checking for available spots
-  const gymClass = PLACEHOLDER_CLASSES.find(c => c.id === classId);
-  if (!gymClass) {
-    return { message: 'Class not found.' };
+  try {
+    const classRef = doc(db, 'classes', classId);
+    
+    const newBookingId = await runTransaction(db, async (transaction) => {
+      const classDoc = await transaction.get(classRef);
+      if (!classDoc.exists()) {
+        throw new Error('Class not found.');
+      }
+
+      const gymClass = classDoc.data() as GymClass;
+      const availableSpots = gymClass.maxSpots - gymClass.bookedSpots;
+      
+      if (spots > availableSpots) {
+        throw new Error(`Only ${availableSpots} spots remaining.`);
+      }
+
+      const updatedBookedSpots = gymClass.bookedSpots + spots;
+      transaction.update(classRef, { bookedSpots: updatedBookedSpots });
+      
+      const bookingsCol = collection(db, 'bookings');
+      const newBookingRef = await addDoc(bookingsCol, {
+        classId,
+        name,
+        email,
+        spots,
+        bookingDate: serverTimestamp(),
+      });
+      return newBookingRef.id;
+    });
+
+    revalidatePath('/schedule');
+    revalidatePath('/');
+    redirect(`/confirmation/${newBookingId}?classId=${classId}`);
+
+  } catch (error: any) {
+    return {
+      message: error.message || 'An unexpected error occurred during booking.',
+    }
   }
-  const availableSpots = gymClass.maxSpots - gymClass.bookedSpots;
-  if (spots > availableSpots) {
-    return { message: `Only ${availableSpots} spots remaining.` };
-  }
-
-  // Simulate saving the booking
-  const newBookingId = `booking${Date.now()}`;
-  const newBooking = {
-    id: newBookingId,
-    classId,
-    name,
-    email,
-    spots,
-    bookingDate: new Date().toISOString(),
-  };
-  
-  // In a real app, you would save `newBooking` to Firestore.
-  // We'll just log it here.
-  console.log('New Booking:', newBooking);
-
-  // Revalidate paths to reflect updated data (e.g., booked spots)
-  revalidatePath('/schedule');
-  revalidatePath('/');
-
-  // Redirect to confirmation page
-  redirect(`/confirmation/${newBookingId}?classId=${classId}`);
 }

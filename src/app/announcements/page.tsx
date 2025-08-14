@@ -1,12 +1,25 @@
 import { Megaphone, Calendar } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Announcement } from '@/lib/types';
-import { PLACEHOLDER_ANNOUNCEMENTS } from '@/lib/placeholder-data';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
+
 
 async function getAnnouncements(): Promise<Announcement[]> {
-  // In a real app, this would fetch from Firestore
-  return Promise.resolve(PLACEHOLDER_ANNOUNCEMENTS);
+  const announcementsCol = collection(db, 'announcements');
+  const q = query(announcementsCol, orderBy('date', 'desc'));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+          id: doc.id,
+          title: data.title,
+          content: data.content,
+          // Convert Firestore Timestamp to a date string
+          date: (data.date as Timestamp).toDate().toISOString().split('T')[0],
+      } as Announcement;
+  });
 }
 
 export default async function AnnouncementsPage() {
