@@ -19,6 +19,7 @@ const navLinks = [
 export default function Header() {
   const pathname = usePathname();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const isAdminPage = pathname.startsWith('/admin') || pathname === '/login';
 
   const handleLinkClick = () => {
     setIsSheetOpen(false);
@@ -84,9 +85,11 @@ export default function Header() {
           </div>
           
           <nav className="flex items-center">
-            <Button asChild>
-              <Link href="/login">Admin Login</Link>
-            </Button>
+            {!isAdminPage && (
+                <Button asChild>
+                    <Link href="/login">Admin Login</Link>
+                </Button>
+            )}
           </nav>
         </div>
       </div>
