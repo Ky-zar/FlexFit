@@ -27,12 +27,13 @@ export default function CheckoutForm({ tier, isAnnual }: CheckoutFormProps) {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
     try {
+        // Simulate payment processing
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
         const result = await purchaseMembership({
             tierId: tier.id,
+            tierName: tier.name,
             isAnnual,
             email,
             name
@@ -44,7 +45,7 @@ export default function CheckoutForm({ tier, isAnnual }: CheckoutFormProps) {
         
         toast({
           title: 'Payment Successful!',
-          description: `Welcome to the ${tier.name} plan.`,
+          description: `Welcome to the ${tier.name} plan. Please set your password.`,
         });
         
         router.push(`/account/create-password?email=${encodeURIComponent(email)}`);

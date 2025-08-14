@@ -1,4 +1,3 @@
-
 import { Timestamp } from 'firebase/firestore';
 
 export interface GymClass {
@@ -21,7 +20,7 @@ export interface Booking {
   name: string;
   email: string;
   spots: number;
-  bookingDate: string | Timestamp; // Allow string for client-side, Timestamp for server
+  bookingDate: Timestamp; 
   gymClass?: GymClass;
   status: BookingStatus;
   membershipId?: string | null;
@@ -50,8 +49,9 @@ export interface User {
   name: string;
   membershipId: string;
   membershipTierId: string;
+  membershipTierName: string;
   membershipIsAnnual: boolean;
-  joinDate: string | Timestamp; // Allow string for client-side, Timestamp for server
+  joinDate: string; 
 }
 
 export type BookingState = {

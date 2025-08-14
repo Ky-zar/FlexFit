@@ -26,6 +26,13 @@ export default function SetPasswordForm({ email }: { email: string }) {
       });
       return;
     }
+    if (password.length < 6) {
+        toast({
+            variant: 'destructive',
+            title: 'Password must be at least 6 characters.',
+        });
+        return;
+    }
     setIsLoading(true);
 
     try {

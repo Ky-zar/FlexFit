@@ -163,7 +163,6 @@ export async function getUserBookings(email: string): Promise<(Booking & { gymCl
         const booking = { 
             id: bookingDoc.id, 
             ...bookingData,
-            bookingDate: (bookingData.bookingDate as Timestamp).toDate().toISOString()
         } as Booking;
         
         const classRef = doc(db, 'classes', booking.classId);
@@ -183,6 +182,7 @@ export async function getUserBookings(email: string): Promise<(Booking & { gymCl
 
 const purchaseMembershipSchema = z.object({
     tierId: z.string(),
+    tierName: z.string(),
     isAnnual: z.boolean(),
     email: z.string().email(),
     name: z.string().min(2),
@@ -190,49 +190,62 @@ const purchaseMembershipSchema = z.object({
 
 export async function purchaseMembership(input: z.infer<typeof purchaseMembershipSchema>) {
     const validated = purchaseMembershipSchema.safeParse(input);
-    if(!validated.success) return { error: "Invalid input." };
+    if(!validated.success) {
+        console.error("Invalid input for purchaseMembership:", validated.error.flatten());
+        return { error: "Invalid input provided." };
+    }
    
-    const { tierId, isAnnual, email, name } = validated.data;
+    const { tierId, tierName, isAnnual, email, name } = validated.data;
+    
+    if (!adminApp) {
+        console.error("CRITICAL: Firebase Admin SDK is not initialized.");
+        return { error: "Server configuration error. Please contact support." };
+    }
+
     const auth = getAuth(adminApp);
 
     try {
         let userRecord;
         try {
+            // Create user in Firebase Auth
             userRecord = await auth.createUser({
                 email,
                 displayName: name,
-                emailVerified: true, 
+                emailVerified: true, // We can assume verification for this flow
             });
         } catch (error: any) {
             if (error.code === 'auth/email-already-exists') {
+                // If user already exists, just get their record.
                 userRecord = await auth.getUserByEmail(email);
             } else {
+                // For other auth errors, re-throw them.
                 throw error;
             }
         }
         
-        const membershipId = `MEM-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+        // Now create the user profile in Firestore
+        const membershipId = `MEM-${userRecord.uid.slice(0, 6).toUpperCase()}`;
         const userRef = doc(db, 'users', userRecord.uid);
         
-        const newUser: Omit<User, 'uid' | 'joinDate'> = {
+        const newUser: User = {
+            uid: userRecord.uid,
             email,
             name,
             membershipId,
             membershipTierId: tierId,
+            membershipTierName: tierName,
             membershipIsAnnual: isAnnual,
+            joinDate: new Date().toISOString(),
         };
         
-        await setDoc(userRef, {
-            ...newUser,
-            uid: userRecord.uid,
-            joinDate: serverTimestamp(),
-        }, { merge: true });
+        await setDoc(userRef, newUser, { merge: true });
         
         return { success: true, uid: userRecord.uid };
 
     } catch (error: any) {
         console.error("Membership Purchase Error:", error);
-        return { error: 'Failed to create membership.' };
+        const message = error.code ? `Auth Error: ${error.code}` : error.message;
+        return { error: `Failed to create membership. ${message}` };
     }
 }
 
@@ -248,13 +261,18 @@ export async function setInitialPassword(input: z.infer<typeof setPasswordSchema
     }
     
     const { email, password } = validated.data;
+
+    if (!adminApp) {
+        console.error("CRITICAL: Firebase Admin SDK is not initialized.");
+        return { error: "Server configuration error. Please contact support." };
+    }
     const auth = getAuth(adminApp);
     
     try {
         const user = await auth.getUserByEmail(email);
         await auth.updateUser(user.uid, { password });
         return { success: true };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Set Password Error:", error);
         return { error: 'Could not set password for this user.' };
     }
@@ -266,12 +284,17 @@ export async function getUser(email: string): Promise<User | null> {
     const querySnapshot = await getDocs(userQuery);
     if(querySnapshot.empty) return null;
     
-    const docSnap = querySnapshot.docs[0];
-    const userData = docSnap.data();
+    const userDoc = querySnapshot.docs[0];
+    const userData = userDoc.data();
     
+    // Ensure joinDate is a string
+    const joinDate = userData.joinDate instanceof Timestamp 
+        ? userData.joinDate.toDate().toISOString() 
+        : userData.joinDate;
+
     return {
-        uid: docSnap.id,
         ...userData,
-        joinDate: (userData.joinDate as Timestamp).toDate().toISOString(),
+        uid: userDoc.id,
+        joinDate: joinDate,
     } as User;
 }
