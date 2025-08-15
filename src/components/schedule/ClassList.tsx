@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { getDay, parseISO } from 'date-fns';
+import { getDay } from 'date-fns';
 import type { GymClass } from '@/lib/types';
 import ClassCard from '@/components/ClassCard';
 import {
@@ -33,7 +33,7 @@ export default function ClassList({ initialClasses }: ClassListProps) {
         const classDate = new Date(c.date);
         // Adjust for timezone offset to prevent day shifts
         const userTimezoneOffset = classDate.getTimezoneOffset() * 60000;
-        return getDay(new Date(classDate.getTime() + userTimezoneOffset)).toString() === selectedDay
+        return getDay(new Date(classDate.getTime() + userTimezoneOffset)).toString() === selectedDay;
     });
   }, [initialClasses, selectedDay]);
 

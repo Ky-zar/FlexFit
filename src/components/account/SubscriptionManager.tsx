@@ -47,7 +47,7 @@ export default function SubscriptionManager({ user }: SubscriptionManagerProps) 
             toast({
                 variant: 'destructive',
                 title: 'Cancellation Failed',
-                description: 'There was an error cancelling your subscription. Please try again.',
+                description: error instanceof Error ? error.message : "An unexpected error occurred.",
             });
         } finally {
             setIsCancelling(false);
