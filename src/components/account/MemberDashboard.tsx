@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -10,6 +11,8 @@ import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import UpcomingClasses from './UpcomingClasses';
+import SubscriptionManager from './SubscriptionManager';
+import MemberCalendar from './MemberCalendar';
 
 interface MemberDashboardProps {
     initialBookings: (Booking & { gymClass?: GymClass })[];
@@ -62,10 +65,10 @@ export default function MemberDashboard({ initialBookings, user }: MemberDashboa
                         <UpcomingClasses bookings={initialBookings} />
                     </TabsContent>
                     <TabsContent value="subscription">
-                        <p className="p-4 text-center text-muted-foreground">Subscription management coming soon.</p>
+                        <SubscriptionManager user={user} />
                     </TabsContent>
                     <TabsContent value="calendar">
-                        <p className="p-4 text-center text-muted-foreground">Personal calendar view coming soon.</p>
+                       <MemberCalendar bookings={initialBookings} />
                     </TabsContent>
                 </Tabs>
             </main>
