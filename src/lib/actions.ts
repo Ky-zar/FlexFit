@@ -6,8 +6,6 @@ import { revalidatePath } from 'next/cache';
 import { db } from './firebase';
 import { collection, getDoc, doc, runTransaction, addDoc, serverTimestamp, setDoc, query, where, getDocs, updateDoc, writeBatch, Timestamp } from 'firebase/firestore';
 import type { GymClass, Booking, User, BookingState } from './types';
-import { getAuth } from 'firebase-admin/auth';
-import { adminApp } from './firebase-admin';
 
 const bookingSchema = z.object({
   classId: z.string(),
@@ -180,96 +178,50 @@ export async function getUserBookings(email: string): Promise<(Booking & { gymCl
     return bookings;
 }
 
-const purchaseMembershipSchema = z.object({
+const createUserProfileSchema = z.object({
+    uid: z.string(),
+    email: z.string().email(),
+    name: z.string(),
     tierId: z.string(),
     tierName: z.string(),
     isAnnual: z.boolean(),
-    email: z.string().email(),
-    name: z.string().min(2),
 });
 
-export async function purchaseMembership(input: z.infer<typeof purchaseMembershipSchema>) {
-    const validated = purchaseMembershipSchema.safeParse(input);
+export async function createUserProfile(input: z.infer<typeof createUserProfileSchema>) {
+    const validated = createUserProfileSchema.safeParse(input);
     if(!validated.success) {
-        return { error: "Invalid input provided." };
-    }
-   
-    const { tierId, tierName, isAnnual, email, name } = validated.data;
-    
-    if (!adminApp) {
-        return { error: "Admin SDK not initialized. Contact support." };
+        // This should not happen if called from the client with correct data
+        throw new Error("Invalid user profile data.");
     }
 
-    const auth = getAuth(adminApp);
+    const { uid, email, name, tierId, tierName, isAnnual } = validated.data;
+    
+    const userRef = doc(db, 'users', uid);
+    const membershipId = `MEM-${uid.slice(0, 6).toUpperCase()}`;
+
+    const newUser: User = {
+        uid,
+        email,
+        name,
+        membershipId,
+        membershipTierId: tierId,
+        membershipTierName: tierName,
+        membershipIsAnnual: isAnnual,
+        joinDate: new Date().toISOString(),
+    };
 
     try {
-        let userRecord;
-        try {
-            userRecord = await auth.createUser({
-                email,
-                displayName: name,
-                emailVerified: true, 
-            });
-        } catch (error: any) {
-            if (error.code === 'auth/email-already-exists') {
-                userRecord = await auth.getUserByEmail(email);
-            } else {
-                throw error;
-            }
-        }
-        
-        const membershipId = `MEM-${userRecord.uid.slice(0, 6).toUpperCase()}`;
-        const userRef = doc(db, 'users', userRecord.uid);
-        
-        const newUser: User = {
-            uid: userRecord.uid,
-            email,
-            name,
-            membershipId,
-            membershipTierId: tierId,
-            membershipTierName: tierName,
-            membershipIsAnnual: isAnnual,
-            joinDate: new Date().toISOString(),
-        };
-        
-        await setDoc(userRef, newUser, { merge: true });
-        
-        return { success: true, uid: userRecord.uid };
-
-    } catch (error: any) {
-        console.error("Membership Purchase Error:", error);
-        const message = error.code ? `Auth Error: ${error.code}` : error.message;
-        return { error: `Failed to create membership. ${message}` };
-    }
-}
-
-const setPasswordSchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(6, 'Password must be at least 6 characters.')
-});
-
-export async function setInitialPassword(input: z.infer<typeof setPasswordSchema>) {
-    const validated = setPasswordSchema.safeParse(input);
-    if (!validated.success) {
-        return { error: validated.error.flatten().fieldErrors.password?.[0] || "Invalid input" };
-    }
-    
-    const { email, password } = validated.data;
-
-    if (!adminApp) {
-        return { error: 'Admin SDK not initialized. Contact support.' };
-    }
-    const auth = getAuth(adminApp);
-    
-    try {
-        const user = await auth.getUserByEmail(email);
-        await auth.updateUser(user.uid, { password });
+        await setDoc(userRef, newUser);
         return { success: true };
-    } catch (error: any) {
-        console.error("Set Password Error:", error);
-        return { error: 'Could not set password for this user.' };
+    } catch(error) {
+        // Log the error for debugging
+        console.error("Failed to create user profile in Firestore:", error);
+        // We might want to handle this case, e.g., by deleting the auth user
+        // to allow them to try again, but for now, we'll just re-throw.
+        throw new Error("Failed to save user details.");
     }
 }
+
 
 export async function getUser(email: string): Promise<User | null> {
     if (!email) return null;
