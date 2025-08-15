@@ -1,13 +1,20 @@
+
+'use client';
+
 import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
 import { Calendar, Clock, User, Tag } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { onAuthStateChanged, type User as FirebaseAuthUser } from 'firebase/auth';
 
 import type { GymClass } from '@/lib/types';
 import BookingForm from '@/components/booking/BookingForm';
+import MemberBooking from '@/components/booking/MemberBooking';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
 
 async function getClassDetails(id: string): Promise<GymClass | undefined> {
   const docRef = doc(db, 'classes', id);
@@ -15,20 +22,53 @@ async function getClassDetails(id: string): Promise<GymClass | undefined> {
 
   if (docSnap.exists()) {
     const data = docSnap.data();
-    // Ensure date is a string literal for serialization
     return { id: docSnap.id, ...data, date: data.date } as GymClass;
   } else {
     return undefined;
   }
 }
 
-export default async function BookClassPage({ params }: { params: { id: string } }) {
-  const gymClass = await getClassDetails(params.id);
+export default function BookClassPage({ params }: { params: { id: string } }) {
+  const [gymClass, setGymClass] = useState<GymClass | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseAuthUser | null>(null);
 
-  if (!gymClass) {
-    notFound();
+  useEffect(() => {
+    async function fetchClass() {
+      const fetchedClass = await getClassDetails(params.id);
+      if (fetchedClass) {
+        setGymClass(fetchedClass);
+      } else {
+        notFound();
+      }
+    }
+    fetchClass();
+    
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+        setFirebaseUser(user);
+        setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [params.id]);
+
+
+  if (loading || !gymClass) {
+    return (
+        <div className="container mx-auto py-16">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
+                <div className="space-y-6">
+                    <Skeleton className="h-10 w-3/4" />
+                    <Skeleton className="h-64 w-full" />
+                </div>
+                <div>
+                     <Skeleton className="h-96 w-full" />
+                </div>
+            </div>
+        </div>
+    )
   }
-  
+
   const availableSpots = gymClass.maxSpots - (gymClass.bookedSpots || 0);
 
   return (
@@ -81,7 +121,11 @@ export default async function BookClassPage({ params }: { params: { id: string }
             </div>
           </div>
           <div>
-            <BookingForm gymClass={gymClass} />
+            {firebaseUser ? (
+                <MemberBooking gymClass={gymClass} user={firebaseUser} />
+            ) : (
+                <BookingForm gymClass={gymClass} />
+            )}
           </div>
         </div>
       </div>

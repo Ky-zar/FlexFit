@@ -12,7 +12,7 @@ const bookingSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   email: z.string().email('Invalid email address.'),
   spots: z.coerce.number().int().min(1, 'You must book at least 1 spot.'),
-  membershipId: z.string().optional(),
+  membershipId: z.string().optional().nullable(),
 });
 
 
