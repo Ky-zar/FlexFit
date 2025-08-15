@@ -12,16 +12,21 @@ export default function AccountLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
-        setUser(currentUser);
         setLoading(false);
       } else {
-        router.push('/login');
+        // Delay to prevent race condition on initial load
+        setTimeout(() => {
+            if (!auth.currentUser) {
+                 router.push('/login');
+            } else {
+                setLoading(false);
+            }
+        }, 500);
       }
     });
 
@@ -45,13 +50,6 @@ export default function AccountLayout({
             </div>
         </div>
     );
-  }
-
-  if (!user) {
-    // This part should ideally not be reached if the redirect works, 
-    // but it's a good fallback. Returning null prevents rendering children 
-    // before redirect is complete.
-    return null;
   }
 
   return <>{children}</>;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from "next/navigation";
 import { LogOut, Calendar, Star, Ticket, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,30 +10,16 @@ import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import UpcomingClasses from './UpcomingClasses';
-import { getUser } from '@/lib/actions';
 
 interface MemberDashboardProps {
     initialBookings: (Booking & { gymClass?: GymClass })[];
+    user: User | null;
 }
 
-export default function MemberDashboard({ initialBookings }: MemberDashboardProps) {
+export default function MemberDashboard({ initialBookings, user }: MemberDashboardProps) {
     const router = useRouter();
     const { toast } = useToast();
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
     const currentUser = auth.currentUser;
-
-    useEffect(() => {
-        if(currentUser?.email) {
-            getUser(currentUser.email).then(userData => {
-                setUser(userData);
-                setLoading(false);
-            })
-        } else {
-            setLoading(false);
-        }
-    }, [currentUser]);
-
 
     const handleLogout = async () => {
         try {
