@@ -7,12 +7,54 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Button } from '../ui/button';
 import Link from 'next/link';
+import { useState } from 'react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { cancelSubscription } from '@/lib/actions';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 interface SubscriptionManagerProps {
     user: User | null;
 }
 
 export default function SubscriptionManager({ user }: SubscriptionManagerProps) {
+    const { toast } = useToast();
+    const router = useRouter();
+    const [isCancelling, setIsCancelling] = useState(false);
+
+    const handleCancellation = async () => {
+        if (!user) return;
+        setIsCancelling(true);
+        try {
+            await cancelSubscription(user.uid);
+            toast({
+                title: 'Subscription Cancelled',
+                description: 'Your membership has been successfully cancelled.',
+            });
+            // Refresh the page to reflect the change
+            router.refresh();
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Cancellation Failed',
+                description: 'There was an error cancelling your subscription. Please try again.',
+            });
+        } finally {
+            setIsCancelling(false);
+        }
+    };
+
+
     if (!user || !user.membershipTierName) {
         return (
              <Card>
@@ -53,8 +95,27 @@ export default function SubscriptionManager({ user }: SubscriptionManagerProps) 
                     </ul>
                 </div>
                  <div>
-                    <Button variant="outline" disabled>Cancel Subscription</Button>
-                    <p className="text-xs text-muted-foreground mt-2">Cancellation feature coming soon.</p>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" disabled={isCancelling}>Cancel Subscription</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure you want to cancel?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                By cancelling your subscription, you will lose access to all membership benefits at the end of your current billing cycle. 
+                                Your account will be removed from the gym's member list. You can still book individual classes as a visitor.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
+                                <Button variant="secondary" asChild><Link href="/membership">Change Plan</Link></Button>
+                                <AlertDialogAction onClick={handleCancellation} disabled={isCancelling}>
+                                    {isCancelling ? 'Cancelling...' : 'Yes, Cancel Subscription'}
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                  </div>
             </CardContent>
         </Card>

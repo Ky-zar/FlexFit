@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { db } from './firebase';
-import { collection, getDoc, doc, runTransaction, addDoc, serverTimestamp, setDoc, query, where, getDocs, updateDoc, writeBatch, Timestamp, orderBy } from 'firebase/firestore';
+import { collection, getDoc, doc, runTransaction, addDoc, serverTimestamp, setDoc, query, where, getDocs, updateDoc, writeBatch, Timestamp, orderBy, deleteDoc } from 'firebase/firestore';
 import type { GymClass, Booking, User, BookingState } from './types';
 
 const bookingSchema = z.object({
@@ -262,4 +262,19 @@ export async function getAllUsers(): Promise<User[]> {
             uid: doc.id
         } as User;
     });
+}
+
+export async function cancelSubscription(uid: string) {
+    if (!uid) {
+        throw new Error('User ID is required to cancel subscription.');
+    }
+    const userRef = doc(db, 'users', uid);
+    try {
+        await deleteDoc(userRef);
+        revalidatePath('/account/dashboard');
+        revalidatePath('/admin/dashboard');
+    } catch (error) {
+        console.error("Error cancelling subscription (deleting user doc): ", error);
+        throw new Error("Could not cancel the subscription. Please try again.");
+    }
 }
