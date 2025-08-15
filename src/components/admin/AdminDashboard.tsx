@@ -1,14 +1,15 @@
 'use client';
 
 import { useRouter } from "next/navigation";
-import { LogOut, Calendar, Star } from "lucide-react";
+import { LogOut, Calendar, Star, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ClassManager from "./ClassManager";
 import AnnouncementManager from "./AnnouncementManager";
 import CalendarView from "./CalendarView";
 import MembershipManager from "./MembershipManager";
-import type { Announcement, GymClass, MembershipTier } from "@/lib/types";
+import UserManager from "./UserManager";
+import type { Announcement, GymClass, MembershipTier, User } from "@/lib/types";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -18,9 +19,10 @@ interface AdminDashboardProps {
     initialClasses: GymClass[];
     initialAnnouncements: Announcement[];
     initialTiers: MembershipTier[];
+    initialUsers: User[];
 }
 
-export default function AdminDashboard({ initialClasses, initialAnnouncements, initialTiers }: AdminDashboardProps) {
+export default function AdminDashboard({ initialClasses, initialAnnouncements, initialTiers, initialUsers }: AdminDashboardProps) {
     const router = useRouter();
     const { toast } = useToast();
 
@@ -50,6 +52,7 @@ export default function AdminDashboard({ initialClasses, initialAnnouncements, i
                 <Tabs defaultValue="classes">
                     <TabsList className="flex flex-wrap h-auto">
                         <TabsTrigger value="classes">Manage Classes</TabsTrigger>
+                        <TabsTrigger value="users"><Users className="mr-2 h-4 w-4" />Manage Users</TabsTrigger>
                         <TabsTrigger value="announcements">Manage Announcements</TabsTrigger>
                         <TabsTrigger value="memberships">
                             <Star className="mr-2 h-4 w-4" />
@@ -62,6 +65,9 @@ export default function AdminDashboard({ initialClasses, initialAnnouncements, i
                     </TabsList>
                     <TabsContent value="classes">
                         <ClassManager initialClasses={initialClasses} />
+                    </TabsContent>
+                     <TabsContent value="users">
+                        <UserManager initialUsers={initialUsers} />
                     </TabsContent>
                     <TabsContent value="announcements">
                         <AnnouncementManager initialAnnouncements={initialAnnouncements} />

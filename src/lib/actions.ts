@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { db } from './firebase';
-import { collection, getDoc, doc, runTransaction, addDoc, serverTimestamp, setDoc, query, where, getDocs, updateDoc, writeBatch, Timestamp } from 'firebase/firestore';
+import { collection, getDoc, doc, runTransaction, addDoc, serverTimestamp, setDoc, query, where, getDocs, updateDoc, writeBatch, Timestamp, orderBy } from 'firebase/firestore';
 import type { GymClass, Booking, User, BookingState } from './types';
 
 const bookingSchema = z.object({
@@ -248,4 +248,18 @@ export async function getUser(email: string): Promise<User | null> {
     };
     
     return user;
+}
+
+
+export async function getAllUsers(): Promise<User[]> {
+    const usersCol = collection(db, 'users');
+    const q = query(usersCol, orderBy('joinDate', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            ...data,
+            uid: doc.id
+        } as User;
+    });
 }

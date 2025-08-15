@@ -1,7 +1,8 @@
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
-import type { GymClass, Announcement, MembershipTier } from "@/lib/types";
+import type { GymClass, Announcement, MembershipTier, User } from "@/lib/types";
+import { getAllUsers } from "@/lib/actions";
 
 async function getAdminData() {
     const classesSnapshot = await getDocs(collection(db, "classes"));
@@ -13,12 +14,14 @@ async function getAdminData() {
     const tiersSnapshot = await getDocs(query(collection(db, "membershipTiers"), orderBy('monthlyPrice')));
     const membershipTiers: MembershipTier[] = tiersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MembershipTier));
 
-    return { classes, announcements, membershipTiers };
+    const users = await getAllUsers();
+
+    return { classes, announcements, membershipTiers, users };
 }
 
 
 export default async function AdminDashboardPage() {
-    const { classes, announcements, membershipTiers } = await getAdminData();
+    const { classes, announcements, membershipTiers, users } = await getAdminData();
 
     return (
         <div className="min-h-screen bg-muted/40 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
@@ -26,6 +29,7 @@ export default async function AdminDashboardPage() {
                 initialClasses={classes} 
                 initialAnnouncements={announcements}
                 initialTiers={membershipTiers}
+                initialUsers={users}
             />
         </div>
     );
