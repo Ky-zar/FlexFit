@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -19,12 +19,13 @@ export default function AccountLayout({
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        setLoading(false);
       } else {
         router.push('/login');
       }
-      setLoading(false);
     });
 
+    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, [router]);
 
@@ -46,7 +47,12 @@ export default function AccountLayout({
     );
   }
 
-  if(!user) return null;
+  if (!user) {
+    // This part should ideally not be reached if the redirect works, 
+    // but it's a good fallback. Returning null prevents rendering children 
+    // before redirect is complete.
+    return null;
+  }
 
   return <>{children}</>;
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -19,12 +19,12 @@ export default function AdminLayout({
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        setLoading(false);
       } else {
         router.push('/login');
       }
-      setLoading(false);
     });
-
+    
     return () => unsubscribe();
   }, [router]);
 
@@ -46,7 +46,9 @@ export default function AdminLayout({
     );
   }
 
-  if(!user) return null; // Or a redirect component
+  if (!user) {
+    return null; 
+  }
 
   return <>{children}</>;
 }
