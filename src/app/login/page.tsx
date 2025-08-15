@@ -1,5 +1,6 @@
 import LoginForm from '@/components/auth/LoginForm';
 import Logo from '@/components/Logo';
+import Link from 'next/link';
 
 export default function LoginPage() {
   return (
@@ -18,7 +19,10 @@ export default function LoginPage() {
         </div>
         <LoginForm />
         <p className="px-8 text-center text-sm text-muted-foreground">
-          Welcome back to FlexFit.
+          Not a member?{' '}
+          <Link href="/membership" className="underline underline-offset-4 hover:text-primary">
+            Sign Up
+          </Link>
         </p>
       </div>
     </div>
