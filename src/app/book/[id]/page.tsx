@@ -32,10 +32,11 @@ export default function BookClassPage({ params }: { params: { id: string } }) {
   const [gymClass, setGymClass] = useState<GymClass | null>(null);
   const [loading, setLoading] = useState(true);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseAuthUser | null>(null);
+  const { id } = params;
 
   useEffect(() => {
     async function fetchClass() {
-      const fetchedClass = await getClassDetails(params.id);
+      const fetchedClass = await getClassDetails(id);
       if (fetchedClass) {
         setGymClass(fetchedClass);
       } else {
@@ -50,7 +51,7 @@ export default function BookClassPage({ params }: { params: { id: string } }) {
     });
 
     return () => unsubscribe();
-  }, [params.id]);
+  }, [id]);
 
 
   if (loading || !gymClass) {

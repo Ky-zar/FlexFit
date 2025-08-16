@@ -9,6 +9,7 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
 async function getClassDetails(id: string): Promise<GymClass | undefined> {
+  if (!id) return undefined;
   const docRef = doc(db, 'classes', id);
   const docSnap = await getDoc(docRef);
   if (docSnap.exists()) {
@@ -25,6 +26,8 @@ export default async function ConfirmationPage({
   searchParams: { classId: string };
 }) {
   const { classId } = searchParams;
+  if (!classId) notFound();
+  
   const gymClass = await getClassDetails(classId);
 
   if (!gymClass) {
