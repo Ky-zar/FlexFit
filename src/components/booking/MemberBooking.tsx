@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
-import { useEffect, useState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { useToast } from '@/hooks/use-toast';
 import { createBooking } from '@/lib/actions';
 import type { GymClass, User } from '@/lib/types';
@@ -32,7 +32,7 @@ function SubmitButton({ gymClass }: { gymClass: GymClass }) {
 
 export default function MemberBooking({ gymClass, user }: MemberBookingProps) {
   const initialState = { message: null, errors: {} };
-  const [state, dispatch] = useFormState(createBooking, initialState);
+  const [state, dispatch] = useActionState(createBooking, initialState);
   const [member, setMember] = useState<User | null>(null);
   const { toast } = useToast();
   const router = useRouter();
@@ -113,4 +113,3 @@ export default function MemberBooking({ gymClass, user }: MemberBookingProps) {
     </Card>
   );
 }
-
