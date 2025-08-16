@@ -1,7 +1,7 @@
 
 'use client';
 
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { format } from 'date-fns';
 import { Calendar, Clock, User, Tag } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -28,7 +28,9 @@ async function getClassDetails(id: string): Promise<GymClass | undefined> {
   }
 }
 
-export default function BookClassPage({ params: { id } }: { params: { id: string } }) {
+export default function BookClassPage() {
+  const params = useParams();
+  const id = params.id as string;
   const [gymClass, setGymClass] = useState<GymClass | null>(null);
   const [loading, setLoading] = useState(true);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseAuthUser | null>(null);
