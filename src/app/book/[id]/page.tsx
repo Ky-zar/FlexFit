@@ -28,11 +28,10 @@ async function getClassDetails(id: string): Promise<GymClass | undefined> {
   }
 }
 
-export default function BookClassPage({ params }: { params: { id: string } }) {
+export default function BookClassPage({ params: { id } }: { params: { id: string } }) {
   const [gymClass, setGymClass] = useState<GymClass | null>(null);
   const [loading, setLoading] = useState(true);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseAuthUser | null>(null);
-  const { id } = params;
 
   useEffect(() => {
     async function fetchClass() {

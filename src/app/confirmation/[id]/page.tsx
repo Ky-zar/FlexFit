@@ -19,7 +19,6 @@ async function getClassDetails(id: string): Promise<GymClass | undefined> {
 }
 
 export default async function ConfirmationPage({
-  params,
   searchParams,
 }: {
   params: { id: string },
