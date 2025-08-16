@@ -9,7 +9,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
 import Logo from '@/components/Logo';
 import { cn } from '@/lib/utils';
 
@@ -56,9 +56,14 @@ export default function Header() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="right">
-                <Link href="/" className="mb-8 block" onClick={handleLinkClick}>
-                  <Logo />
-                </Link>
+                <SheetHeader>
+                    <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                    <SheetDescription className="sr-only">Main menu for navigating the FlexFit website.</SheetDescription>
+                     <Link href="/" className="mb-8 block" onClick={handleLinkClick}>
+                        <Logo />
+                    </Link>
+                </SheetHeader>
+                
                 <div className="flex flex-col space-y-4">
                   {navLinks.map((link) => (
                     <Link
