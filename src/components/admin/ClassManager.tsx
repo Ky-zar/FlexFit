@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -18,9 +19,10 @@ import type { GymClass, Booking } from '@/lib/types';
 import { Input } from '../ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, query, where, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, getDocs, query, where } from 'firebase/firestore';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
+import { deleteClass } from '@/lib/actions';
 
 interface ClassManagerProps {
     initialClasses: GymClass[];
@@ -157,24 +159,12 @@ export default function ClassManager({ initialClasses }: ClassManagerProps) {
     
     const handleDelete = async (id: string) => {
         if(window.confirm('Are you sure? This will delete the class and all associated bookings.')) {
-            try {
-                const batch = writeBatch(db);
-                // Delete the class
-                batch.delete(doc(db, 'classes', id));
-                
-                // Find and delete all bookings for that class
-                const bookingsQuery = query(collection(db, 'bookings'), where('classId', '==', id));
-                const bookingsSnapshot = await getDocs(bookingsQuery);
-                bookingsSnapshot.forEach(bookingDoc => {
-                    batch.delete(bookingDoc.ref);
-                });
-
-                await batch.commit();
-
+            const result = await deleteClass(id);
+            if (result?.success) {
                 toast({ title: 'Class and all its bookings have been deleted.'});
                 setClasses(classes.filter(c => c.id !== id));
-            } catch (error) {
-                 toast({ variant: 'destructive', title: 'Failed to delete class.'});
+            } else {
+                 toast({ variant: 'destructive', title: result.error || 'Failed to delete class.'});
             }
         }
     }
@@ -259,3 +249,5 @@ export default function ClassManager({ initialClasses }: ClassManagerProps) {
         </Card>
     );
 }
+
+    

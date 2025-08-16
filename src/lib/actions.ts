@@ -264,17 +264,54 @@ export async function getAllUsers(): Promise<User[]> {
     });
 }
 
-export async function cancelSubscription(uid: string) {
+export async function cancelSubscription(uid: string): Promise<{ success: boolean, error?: string}> {
     if (!uid) {
-        throw new Error('User ID is required to cancel subscription.');
+        return { success: false, error: 'User ID is required to cancel subscription.' };
     }
     const userRef = doc(db, 'users', uid);
     try {
         await deleteDoc(userRef);
         revalidatePath('/account/dashboard');
         revalidatePath('/admin/dashboard');
+        return { success: true };
     } catch (error) {
         console.error("Error cancelling subscription (deleting user doc): ", error);
-        throw new Error("Could not cancel the subscription. Please try again.");
+        return { success: false, error: "Could not cancel the subscription. Please try again." };
     }
 }
+
+export async function deleteClass(classId: string): Promise<{success: boolean, error?: string}> {
+    if (!classId) {
+        return { success: false, error: "Class ID is required." };
+    }
+    
+    try {
+        const batch = writeBatch(db);
+        
+        // Delete the class document
+        const classRef = doc(db, 'classes', classId);
+        batch.delete(classRef);
+        
+        // Find and delete all associated bookings
+        const bookingsQuery = query(collection(db, 'bookings'), where('classId', '==', classId));
+        const bookingsSnapshot = await getDocs(bookingsQuery);
+        bookingsSnapshot.forEach(bookingDoc => {
+            batch.delete(bookingDoc.ref);
+        });
+
+        await batch.commit();
+
+        // Revalidate paths to clear caches
+        revalidatePath('/');
+        revalidatePath('/schedule');
+        revalidatePath('/admin/dashboard');
+
+        return { success: true };
+    } catch (error) {
+        console.error("Error deleting class and bookings:", error);
+        const message = error instanceof Error ? error.message : "An unknown error occurred.";
+        return { success: false, error: `Failed to delete class: ${message}` };
+    }
+}
+
+    
