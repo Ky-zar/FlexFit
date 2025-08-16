@@ -20,23 +20,31 @@ const navLinks = [
   { href: '/announcements', label: 'Announcements' },
 ];
 
+const ADMIN_EMAIL = 'admin@flexfit.com';
+
 export default function Header() {
   const pathname = usePathname();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [user, setUser] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const isAdminPage = pathname.startsWith('/admin') || pathname === '/login';
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(!!currentUser);
+      setIsLoggedIn(!!currentUser);
+      setIsAdmin(currentUser?.email === ADMIN_EMAIL);
     });
     return () => unsubscribe();
   }, []);
 
-
   const handleLinkClick = () => {
     setIsSheetOpen(false);
   };
+  
+  const getDashboardLink = () => {
+      if (!isLoggedIn) return "/login";
+      return isAdmin ? "/admin/dashboard" : "/account/dashboard";
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -81,8 +89,8 @@ export default function Header() {
                 </div>
                  {!isAdminPage && (
                     <Button asChild className="w-full mt-8">
-                        <Link href={ user ? "/account/dashboard" : "/login" } onClick={handleLinkClick}>
-                          {user ? 'My Account' : 'Login'}
+                        <Link href={getDashboardLink()} onClick={handleLinkClick}>
+                          {isLoggedIn ? 'My Account' : 'Login'}
                         </Link>
                     </Button>
                 )}
@@ -108,10 +116,10 @@ export default function Header() {
 
             <nav className="flex items-center">
                 {!isAdminPage && (
-                    <Button asChild variant={user ? "outline" : "default"}>
-                        <Link href={ user ? "/account/dashboard" : "/login" }>
-                          {user && <User className="mr-2 h-4 w-4" />}
-                          {user ? 'My Account' : 'Login'}
+                    <Button asChild variant={isLoggedIn ? "outline" : "default"}>
+                        <Link href={getDashboardLink()}>
+                          {isLoggedIn && <User className="mr-2 h-4 w-4" />}
+                          {isLoggedIn ? 'My Account' : 'Login'}
                         </Link>
                     </Button>
                 )}
